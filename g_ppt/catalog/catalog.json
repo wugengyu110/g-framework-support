@@ -1,0 +1,962 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-07T07:09:47.274Z",
+  "packs": [
+    {
+      "id": "default",
+      "name": "通用课程",
+      "description": "通用讲解版式：封面、要点、对比、流程、代码、公式",
+      "order": 10
+    },
+    {
+      "id": "product_brief",
+      "name": "产品发布会",
+      "description": "产品发布 / Brief 风格版式组（可按节目继续扩展）",
+      "order": 20
+    }
+  ],
+  "templates": [
+    {
+      "id": "title_mark_split_v1",
+      "pack": "default",
+      "type": "title",
+      "name": "封面",
+      "description": "封面函数：badge 用【休心】【休身】或具体主题如【编程】【量化】（认知→休心，健康→休身；技术类勿写【休行】）。title 用文中主标题，各页沿用小节标题。demo 文案勿照抄；右侧品牌动效成片会录屏保留",
+      "tags": [
+        "封面",
+        "开场",
+        "品牌",
+        "三休",
+        "休心",
+        "休身"
+      ],
+      "order": 5,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "badge": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "string"
+          },
+          "mark_src": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "badge": "【编程】",
+        "title": "如何写测试",
+        "subtitle": "先把可验证的行为说清楚",
+        "meta": "【编程】"
+      },
+      "inputs": [
+        {
+          "name": "badge",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "subtitle",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "meta",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "mark_src",
+          "required": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "bullets_focus_v1",
+      "pack": "default",
+      "type": "bullets",
+      "name": "要点列表",
+      "description": "要点函数：title + bullets[1–6]，条数与文案按段自拟可增减；适合概念讲解。demo 列表勿照抄",
+      "tags": [
+        "要点",
+        "列表",
+        "概念"
+      ],
+      "order": 20,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "bullets": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "bullets"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "核心概念",
+        "title": "为什么不堆「很多 PPT 皮肤」",
+        "bullets": [
+          "模板增长单位是「版式 + Schema」，不是 pptx 文件",
+          "Agent 只能稳定调用带强类型槽位的组件",
+          "同一套 props 可同时渲视频与课件",
+          "按内容类型路由，比按「好看」选模板更可靠"
+        ]
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "bullets",
+          "required": true,
+          "type": "array",
+          "items": "string",
+          "minItems": 1,
+          "maxItems": 6
+        }
+      ]
+    },
+    {
+      "id": "compare_two_col_v1",
+      "pack": "default",
+      "type": "compare",
+      "name": "双栏对比",
+      "description": "对照函数：title + left/right（各含 label + bullets[1–4]），两侧必须齐全且按段重写；条数可各不同。demo 勿照抄",
+      "tags": [
+        "对比",
+        "vs",
+        "差异"
+      ],
+      "order": 30,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "left": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "bullets": {
+                "minItems": 1,
+                "maxItems": 4,
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "label",
+              "bullets"
+            ],
+            "additionalProperties": false
+          },
+          "right": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "bullets": {
+                "minItems": 1,
+                "maxItems": 4,
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "label",
+              "bullets"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "title",
+          "left",
+          "right"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "方案对比",
+        "title": "同步请求 vs 异步消息",
+        "left": {
+          "label": "同步",
+          "bullets": [
+            "调用方等待结果返回",
+            "链路简单，易调试",
+            "高峰时容易互相拖垮"
+          ]
+        },
+        "right": {
+          "label": "异步",
+          "bullets": [
+            "发送后继续处理",
+            "削峰填谷，扩展性更好",
+            "需要补偿与可观测性"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "left",
+          "required": true,
+          "type": "object",
+          "fields": [
+            {
+              "name": "label",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "bullets",
+              "required": true,
+              "type": "array",
+              "items": "string",
+              "minItems": 1,
+              "maxItems": 4
+            }
+          ]
+        },
+        {
+          "name": "right",
+          "required": true,
+          "type": "object",
+          "fields": [
+            {
+              "name": "label",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "bullets",
+              "required": true,
+              "type": "array",
+              "items": "string",
+              "minItems": 1,
+              "maxItems": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "process_steps_v1",
+      "pack": "default",
+      "type": "process",
+      "name": "步骤流程",
+      "description": "流程函数：title + steps[{title,desc}][2–5]，步数与文案按段自拟可增减。demo 步骤勿照抄",
+      "tags": [
+        "流程",
+        "步骤",
+        "方法"
+      ],
+      "order": 40,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "steps": {
+            "minItems": 2,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "desc": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "desc"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "title",
+          "steps"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "生产流水线",
+        "title": "一节课如何自动生成",
+        "steps": [
+          {
+            "title": "结构化讲稿",
+            "desc": "切成 scene：类型 + 意图 + 旁白"
+          },
+          {
+            "title": "路由版式",
+            "desc": "按 type 从 Registry 选模板"
+          },
+          {
+            "title": "填槽校验",
+            "desc": "按 Zod Schema 生成 props"
+          },
+          {
+            "title": "渲染出片",
+            "desc": "Playwright 截图 / ffmpeg 合成"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "steps",
+          "required": true,
+          "type": "array",
+          "items": "object",
+          "minItems": 2,
+          "maxItems": 5,
+          "fields": [
+            {
+              "name": "title",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "desc",
+              "required": true,
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_spotlight_v1",
+      "pack": "default",
+      "type": "code",
+      "name": "代码聚焦",
+      "description": "代码函数：title + language + code（≤20 行可朗读）+ note?；内容须来自口播/文档，demo 示例代码勿照抄；勿贴整文件",
+      "tags": [
+        "代码",
+        "示例",
+        "技术",
+        "高亮"
+      ],
+      "order": 50,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "language": {
+            "default": "typescript",
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "language",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "Agent Tool",
+        "title": "render_slide 的调用形态",
+        "language": "typescript",
+        "code": "await render_slide({\n  template_id: \"compare_two_col_v1\",\n  props: {\n    title: \"同步 vs 异步\",\n    left:  { label: \"同步\", bullets: [\"阻塞\"] },\n    right: { label: \"异步\", bullets: [\"不阻塞\"] },\n  },\n})",
+        "note": "Agent 只写 JSON props；组件代码由版式库维护。"
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "language",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "code",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "note",
+          "required": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "chart_simple_v1",
+      "pack": "default",
+      "type": "chart",
+      "name": "简易图表",
+      "description": "图表函数：title + chart_type(bar|line|pie) + items[{label,value}][2–8]；条数/类型按数据自选，数值须真实。demo 三项勿照抄",
+      "tags": [
+        "图表",
+        "数据",
+        "柱状",
+        "折线",
+        "饼图"
+      ],
+      "order": 55,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "chart_type": {
+            "default": "bar",
+            "type": "string",
+            "enum": [
+              "bar",
+              "line",
+              "pie"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "items": {
+            "minItems": 2,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "label",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "chart_type",
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "效果对比",
+        "title": "三种路径的完播率",
+        "chart_type": "bar",
+        "unit": "%",
+        "items": [
+          {
+            "label": "纯口播",
+            "value": 32
+          },
+          {
+            "label": "要点卡",
+            "value": 51
+          },
+          {
+            "label": "图+代码",
+            "value": 68
+          }
+        ],
+        "note": "有画面结构时，听众更容易跟完。"
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "chart_type",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "unit",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "items",
+          "required": true,
+          "type": "array",
+          "items": "object",
+          "minItems": 2,
+          "maxItems": 8,
+          "fields": [
+            {
+              "name": "label",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "value",
+              "required": true,
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "name": "note",
+          "required": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "math_formula_v1",
+      "pack": "default",
+      "type": "math",
+      "name": "数学公式",
+      "description": "公式函数：title + formula（LaTeX 正文，勿包 $$）+ note?；适合定理/方程/推导（多行用 \\begin{aligned}）；内容须来自口播/文档，demo 勿照抄",
+      "tags": [
+        "公式",
+        "数学",
+        "LaTeX",
+        "定理",
+        "方程"
+      ],
+      "order": 55,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "formula": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "formula"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "基础关系",
+        "title": "质能等价",
+        "formula": "E = mc^{2}",
+        "note": "静止质量与能量的正比关系；c 为真空光速。"
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "formula",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "note",
+          "required": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "canvas_map_v1",
+      "pack": "default",
+      "type": "canvas",
+      "name": "画布关系图",
+      "description": "画布函数：title + nodes[{id,label,note?}][2–8] + edges[{from,to,label?}][≤12]；节点/连线按段增减自拟，demo 勿照抄。线性步骤用 process",
+      "tags": [
+        "画布",
+        "关系",
+        "节点",
+        "连线",
+        "Canvas"
+      ],
+      "order": 56,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "nodes": {
+            "minItems": 2,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "edges": {
+            "default": [],
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "nodes",
+          "edges"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "section": "知识结构",
+        "title": "口播成片怎么拼起来",
+        "nodes": [
+          {
+            "id": "doc",
+            "label": "文档",
+            "note": "信息源"
+          },
+          {
+            "id": "script",
+            "label": "口播段",
+            "note": "role + narration"
+          },
+          {
+            "id": "surface",
+            "label": "展示面",
+            "note": "模板 props"
+          },
+          {
+            "id": "tts",
+            "label": "TTS",
+            "note": "音色"
+          },
+          {
+            "id": "video",
+            "label": "成片",
+            "note": "ffmpeg"
+          }
+        ],
+        "edges": [
+          {
+            "from": "doc",
+            "to": "script",
+            "label": "提炼"
+          },
+          {
+            "from": "script",
+            "to": "surface",
+            "label": "选版"
+          },
+          {
+            "from": "script",
+            "to": "tts"
+          },
+          {
+            "from": "surface",
+            "to": "video"
+          },
+          {
+            "from": "tts",
+            "to": "video",
+            "label": "合成"
+          }
+        ],
+        "note": "先定文案节拍，再铺关系与画面。"
+      },
+      "inputs": [
+        {
+          "name": "section",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "nodes",
+          "required": true,
+          "type": "array",
+          "items": "object",
+          "minItems": 2,
+          "maxItems": 8,
+          "fields": [
+            {
+              "name": "id",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "label",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "note",
+              "required": false,
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "name": "edges",
+          "required": true,
+          "type": "array",
+          "items": "object",
+          "maxItems": 12,
+          "fields": [
+            {
+              "name": "from",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "to",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "label",
+              "required": false,
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "name": "note",
+          "required": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "id": "product_launch_title_v1",
+      "pack": "product_brief",
+      "type": "title",
+      "name": "发布会开场",
+      "description": "发布会封面函数：title 必填，eyebrow/highlight/footer 按片自拟。demo 文案勿照抄",
+      "tags": [
+        "发布会",
+        "产品",
+        "开场"
+      ],
+      "order": 10,
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "highlight": {
+            "type": "string"
+          },
+          "footer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "demo": {
+        "eyebrow": "Product Launch",
+        "title": "下一版，为讲解而生",
+        "highlight": "同一套内容，按节目切换模板组与主题",
+        "footer": "G-PPT · product_brief"
+      },
+      "inputs": [
+        {
+          "name": "eyebrow",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "highlight",
+          "required": false,
+          "type": "string"
+        },
+        {
+          "name": "footer",
+          "required": false,
+          "type": "string"
+        }
+      ]
+    }
+  ]
+}

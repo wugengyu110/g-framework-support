@@ -1,0 +1,5 @@
+{
+  "voices": [
+    { "id": "myvoice", "name": "我的音色", "ref_audio": "myvoice.wav" }
+  ]
+}

@@ -1,0 +1,32 @@
+services:
+  g-ppt:
+    build: .
+    # 每次 up 都重新 build（代码/资源变更无需手动 --build）
+    pull_policy: build
+    restart: on-failure
+    networks:
+      - default
+      - support-net
+    ports:
+      # 宿主落地端口由 G_PPT_PORT 控制，默认 18800（避开常见 8000）
+      - "${G_PPT_PORT:-18800}:18800"
+    environment:
+      G_PPT_ROOT: /app
+      PORT: "18800"
+      # 容器内 Playwright 访问本机服务，必须用容器端口
+      G_PPT_RENDER_BASE_URL: http://127.0.0.1:18800
+      # 同时渲染任务上限（Chromium/ffmpeg），默认 1
+      G_PPT_CONCURRENCY: "${G_PPT_CONCURRENCY:-1}"
+    volumes:
+      - ./output:/app/output
+      - ./assets:/app/assets
+      - ./jobs:/app/jobs
+      # 可选：挂载模板源码
+      # - ./frontend/src/templates:/app/frontend/src/templates
+
+networks:
+  # 跨 compose 栈共享（g-framework 各项目 backend 亦挂此网），故由外部创建：
+  #   docker network create g-support-net
+  support-net:
+    external: true
+    name: g-support-net

@@ -1,0 +1,40 @@
+{
+  "name": "g-ppt-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint src",
+    "preview": "vite preview",
+    "catalog": "vite-node ../tools/export-catalog.ts && NODE_PATH=./node_modules tsx ../tools/export-openapi.ts",
+    "g-ppt": "vite-node ../tools/cli.ts",
+    "api": "vite-node ../server/index.ts",
+    "postinstall": "vite-node ../tools/export-catalog.ts && NODE_PATH=./node_modules tsx ../tools/export-openapi.ts || true"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.12",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.5.1",
+    "highlight.js": "^11.11.1",
+    "hono": "^4.12.32",
+    "katex": "^0.18.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "playwright": "^1.62.0",
+    "tsx": "^4.23.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vite-node": "^6.0.0"
+  }
+}

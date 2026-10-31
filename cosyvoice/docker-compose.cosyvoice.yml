@@ -1,0 +1,26 @@
+services:
+  cosyvoice:
+    image: neosun/cosyvoice:v3.4.0
+    container_name: cosyvoice
+    restart: on-failure
+    networks:
+      - default
+      - support-net
+    ports:
+      - "8188:8188"
+    volumes:
+      - ./voices:/data/voices
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+
+networks:
+  # 跨 compose 栈共享（g-framework 各项目 backend 亦挂此网），故由外部创建：
+  #   docker network create g-support-net
+  support-net:
+    external: true
+    name: g-support-net

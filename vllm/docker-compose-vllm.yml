@@ -1,0 +1,36 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    restart: on-failure
+
+    # GPU 支持（Docker >= 20.10）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    environment:
+      # 如需限制使用哪几张卡，可改成 "0,1"
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+    ports:
+      - "8000:9955"
+
+    volumes:
+      - /home/adminer/20260114vllm/vllm_models:/models:ro
+
+    command: >
+      --model /models/Qwen2.5-7B-Instruct
+      --host 0.0.0.0
+      --port 8000
+      --tensor-parallel-size 2
+      --dtype auto
+      --max-model-len 4096
+      --gpu-memory-utilization 0.90
+      --swap-space 16
+      --disable-log-stats

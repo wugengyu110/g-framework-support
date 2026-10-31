@@ -1,0 +1,273 @@
+/* ========== 可调视觉变量（高级美化版 · 直接可用） ========== */
+:root {
+  /* 页面 */
+  --page-bg: #f0f7ff; /* 页面背景色 */
+  --page-font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif; /* 页面字体族 */
+
+  /* 舞台外框 */
+  --stage-max-width: min(92vw, 440px); /* 舞台最大宽度 */
+  --stage-border-radius: 50%; /* 舞台圆角 */
+  --stage-shadow: 0 20px 60px rgba(50, 120, 200, 0.15), /* 舞台阴影层1 */
+                  0 8px 25px rgba(30, 100, 180, 0.08),   /* 舞台阴影层2 */
+                  0 0 0 1px rgba(255,255,255,0.6),        /* 舞台阴影层3 */
+                  inset 0 1px 0 rgba(255,255,255,0.8);    /* 舞台内阴影 */
+
+  /* 舞台几何（不用动） */
+  --stage-vb-w: 400;         /* SVG 舞台 viewBox 宽度 */
+  --stage-vb-h: 400;         /* SVG 舞台 viewBox 高度 */
+  --arena-cx: 200;           /* 竞技场（主圆）中心 X 坐标 */
+  --arena-cy: 200;           /* 竞技场（主圆）中心 Y 坐标 */
+  --arena-r: 188;            /* 竞技场（主圆）半径 */
+  --ball-r: 40;              /* 三个小球半径 */
+
+  /* 连线渐变 */
+  --line-grad-x1: 0%;         /* 渐变起点X */
+  --line-grad-y1: 0%;         /* 渐变起点Y */
+  --line-grad-x2: 100%;       /* 渐变终点X */
+  --line-grad-y2: 100%;       /* 渐变终点Y */
+  --line-grad-stop-mid: 50%;  /* 连线渐变中点 */
+
+  /* 球体高光位置 */
+  --ball-grad-cx: 28%;             /* 球体高光中心X */
+  --ball-grad-cy: 24%;             /* 球体高光中心Y */
+  --ball-grad-r: 80%;              /* 球体高光半径 */
+  --ball-grad-stop-mid: 50%;       /* 球体渐变止中点 */
+  --ball-grad-highlight: #ffffff;  /* 球体高光色 */
+
+  /* 球体投影 */
+  --ball-shadow-filter-x: -40%;   /* 球影X起点百分比 */
+  --ball-shadow-filter-y: -40%;   /* 球影Y起点百分比 */
+  --ball-shadow-filter-w: 180%;   /* 球影宽度百分比 */
+  --ball-shadow-filter-h: 180%;   /* 球影高度百分比 */
+  --ball-shadow-dx: 0;            /* 球影偏移X */
+  --ball-shadow-color: #2a4d75;   /* 球影颜色 */
+
+  /* ========== 颜色美化核心 ========== */
+  --arena-rect-fill: transparent;          /* 外框填充色 */
+  --arena-fill-url: url(#arenaGradient);   /* 主圆渐变填充url */
+  --arena-vignette-url: url(#arenaVignette); /* 内陰影渐变叠加url */
+  --arena-grad-inner: #48c1f8;             /* 竞技场内侧渐变色 */
+  --arena-grad-outer: #0081e4;             /* 竞技场外侧渐变色 */
+  --arena-grad-highlight: #c9eff6;         /* 竞技场高光色 */
+  --arena-edge-stroke: rgba(255, 255, 255, 0.6); /* 竞技场边缘描边色 */
+  --arena-edge-stroke-width: 2;                 /* 竞技场边缘描边线宽 */
+
+  /* 场心背景字「三休」（坐标须与 --arena-cx / --arena-cy 一致） */
+  --arena-watermark-fill: rgba(255, 255, 255, 0.22); /* 水印字颜色 */
+  --arena-watermark-size: 120px;                      /* 水印字字号 */
+  --arena-watermark-weight: 650;                     /* 水印字重 */
+  --arena-watermark-letter-spacing: 0.2em;           /* 水印字体距 */
+
+  --line-width: 16; /* 连线宽度 */
+  --line-cap: round; /* 连线端点样式 */
+  --line-join: round; /* 连线转角样式 */
+  --line-opacity: 1; /* 连线不透明度 */
+  /* 行↔心：行球 → 心球 */
+  --line-ab-a: var(--ball-0-fill);    /* 行到心渐变色起点 */
+  --line-ab-b: #c9a8e0;               /* 行到心渐变中点 */
+  --line-ab-c: var(--ball-1-fill);    /* 行到心渐变终点 */
+  /* 心↔身：心球 → 身球 */
+  --line-bc-a: var(--ball-1-fill);    /* 心到身渐变色起点 */
+  --line-bc-b: #8fc4b8;               /* 心到身渐变中点 */
+  --line-bc-c: var(--ball-2-fill);    /* 心到身渐变终点 */
+  /* 身↔行：身球 → 行球 */
+  --line-ca-a: var(--ball-2-fill);    /* 身到行渐变色起点 */
+  --line-ca-b: #e2cb99;               /* 身到行渐变中点 */
+  --line-ca-c: var(--ball-0-fill);    /* 身到行渐变终点 */
+
+  /* 球体共用描边（三色球各自渐变见 #ball0–#ball2） */
+  --ball-stroke: rgba(255, 255, 255, 0.55);    /* 球体描边色 */
+  --ball-stroke-width: 3;                      /* 球体描边宽 */
+  /* 仅圆盘半透明，标签文字保持不透明 */
+  --ball-disk-opacity: 1;                    /* 球盘透明度 */
+
+  /* 行 · 暖金 */
+  --ball-0-highlight: #fffef8;    /* 高光色 */
+  --ball-0-fill: #fff4dc;         /* 填充主色 */
+  --ball-0-edge: #d4cd4a;         /* 边缘色 */
+  --ball-0-text: #855c14;         /* 标签文字色 */
+  /* 心 · 红色系 */
+  --ball-1-highlight: #fff5f5;    /* 高光色 */
+  --ball-1-fill: #ffd6d6;         /* 填充主色 */
+  --ball-1-edge: #da3a3aa7;       /* 边缘色 */
+  --ball-1-text: #97182f;         /* 标签文字色 */
+  /* 身 · 青绿 */
+  --ball-2-highlight: #f5fffc;    /* 高光色 */
+  --ball-2-fill: #dff5ee;         /* 填充主色 */
+  --ball-2-edge: #4ab89a;         /* 边缘色 */
+  --ball-2-text: #0e5b4c;         /* 标签文字色 */
+  --ball-font-size: 50px;          /* 球体标签字号 */
+  --ball-font-weight: 700;         /* 球体标签字重 */
+  --ball-letter-spacing: 0.06em;   /* 球体标签字距 */
+
+  /* 阴影强度（更柔和高级） */
+  --ball-shadow-blur: 10;              /* 球体阴影虚化值 */
+  --ball-shadow-opacity: 0.2;          /* 球体阴影不透明度 */
+  --ball-shadow-y: 5;                  /* 球体阴影Y偏移 */
+}
+
+* {
+  box-sizing: border-box; /* 盒模型边框含padding和border */
+}
+
+body {
+  margin: 0; /* body无外边距 */
+  min-height: 100vh; /* body最小高度100%视口 */
+  display: flex; /* 使用flex布局 */
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
+  background: var(--page-bg); /* 页面背景色 */
+  font-family: var(--page-font-family); /* 页面字体族 */
+  -webkit-font-smoothing: antialiased; /* 字体抗锯齿 */
+}
+
+.wrap {
+  width: var(--stage-max-width); /* 包裹层宽度 */
+}
+
+#stage {
+  display: block; /* SVG舞台为块元素 */
+  width: 100%;    /* 宽度100% */
+  height: auto;   /* 高度自适应 */
+  border-radius: var(--stage-border-radius); /* 舞台圆角 */
+  box-shadow: var(--stage-shadow);       /* 舞台阴影 */
+  overflow: hidden;                      /* 超出隐藏 */
+}
+
+.arena-rect {
+  width: 100%;                /* 矩形全宽 */
+  height: 100%;               /* 矩形全高 */
+  fill: var(--arena-rect-fill); /* 填充色 */
+}
+
+.arena-clip,
+.arena-fill,
+.arena-vignette,
+.arena-edge {
+  cx: var(--arena-cx); /* 圆心坐标X */
+  cy: var(--arena-cy); /* 圆心坐标Y */
+  r: var(--arena-r);   /* 圆半径 */
+}
+
+.arena-fill {
+  fill: var(--arena-fill-url);  /* 主圆渐变填充 */
+}
+
+.arena-vignette {
+  fill: var(--arena-vignette-url); /* 内阴影渐变填充 */
+  pointer-events: none;            /* 禁止交互 */
+}
+
+.arena-edge {
+  fill: none;                               /* 不填充 */
+  stroke: var(--arena-edge-stroke);         /* 描边色 */
+  stroke-width: var(--arena-edge-stroke-width); /* 描边宽 */
+  pointer-events: none;                     /* 禁止交互 */
+}
+
+/* 
+  确保三休字体（arena-watermark）在最上层：
+  1. 懒用 pointer-events: auto 反复权重没用，SVG 下 z-index 无支援。
+  2. 直接增强样式对比度，让三休盖过其他内容。
+  3. 最优方案为HTML中将三休的<text>元素顺序放在最末层（但如仅允许CSS控制，则提升其视觉冲击）。
+*/
+
+.arena-watermark {
+  font-family: var(--page-font-family); /* 字体族 */
+  fill: #fff;                          /* 加强白色对比度 */
+  font-size: calc(var(--arena-watermark-size) + 10px); /* 略放大 */
+  font-weight: 900;                                /* 更粗体 */
+  letter-spacing: var(--arena-watermark-letter-spacing); /* 字距 */
+  text-anchor: middle;                /* 水平居中 */
+  dominant-baseline: central;         /* 垂直居中 */
+  text-rendering: optimizeLegibility; /* 提高渲染 */
+  pointer-events: none;               /* 禁止交互 */
+  user-select: none;                  /* 禁止选中 */
+  /* 以下为SVG层增强视觉层级 */
+  filter: drop-shadow(0 2px 6px rgba(30,80,180, 0.25)) drop-shadow(0 0px 12px rgba(255,255,255,0.85)); /* 阴影增强 */
+}
+
+/* 若部分浏览器不支持filter，可用以下阴影增强（也可二选一） */
+/*
+.arena-watermark {
+  stroke: #fff;              // 描边色白
+  stroke-width: 1.5px;       // 描边宽度
+  paint-order: stroke;       // 先描边后填充
+}
+*/
+
+.link-line {
+  stroke-width: var(--line-width);   /* 连线宽度 */
+  stroke-linecap: var(--line-cap);   /* 端点样式 */
+  stroke-linejoin: var(--line-join); /* 转角样式 */
+  opacity: var(--line-opacity);      /* 不透明度 */
+}
+
+#line-ab {
+  stroke: url(#lineGradientAB); /* AB连线渐变色 */
+}
+#line-bc {
+  stroke: url(#lineGradientBC); /* BC连线渐变色 */
+}
+#line-ca {
+  stroke: url(#lineGradientCA); /* CA连线渐变色 */
+}
+
+.ball-disk {
+  r: var(--ball-r);                        /* 半径 */
+  stroke: var(--ball-stroke);              /* 描边色 */
+  stroke-width: var(--ball-stroke-width);  /* 描边宽度 */
+  opacity: var(--ball-disk-opacity);       /* 圆盘不透明度 */
+}
+
+#ball0 .ball-disk {
+  fill: url(#ballGradient0); /* 球0填充渐变色 */
+}
+#ball1 .ball-disk {
+  fill: url(#ballGradient1); /* 球1填充渐变色 */
+}
+#ball2 .ball-disk {
+  fill: url(#ballGradient2); /* 球2填充渐变色 */
+}
+
+.ball-label {
+  font-family: var(--page-font-family);     /* 标签字体 */
+  font-size: var(--ball-font-size);         /* 字号 */
+  font-weight: var(--ball-font-weight);     /* 字重 */
+  letter-spacing: var(--ball-letter-spacing); /* 字距 */
+  text-anchor: middle;                      /* 居中 */
+  dominant-baseline: middle;                /* 垂直居中 */
+  text-rendering: optimizeLegibility;       /* 优化字体渲染 */
+}
+
+#ball0 .ball-label {
+  fill: var(--ball-0-text); /* 球0文字色 */
+}
+#ball1 .ball-label {
+  fill: var(--ball-1-text); /* 球1文字色 */
+}
+#ball2 .ball-label {
+  fill: var(--ball-2-text); /* 球2文字色 */
+}
+
+/* 幻灯片嵌入：舞台铺满，无外圈底色 */
+html.embed,
+html.embed body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+html.embed .wrap {
+  width: 100%;
+  height: 100%;
+}
+
+html.embed #stage {
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
+}

@@ -1,0 +1,23 @@
+{
+  "scenes": [
+    {
+      "template_id": "title_mark_split_v1",
+      "duration_sec": 2,
+      "props": {
+        "badge": "Demo",
+        "title": "G-PPT Show",
+        "subtitle": "PNG + duration → MP4",
+        "meta": "smoke test"
+      }
+    },
+    {
+      "template_id": "bullets_focus_v1",
+      "duration_sec": 3,
+      "props": {
+        "section": "Test",
+        "title": "Show render works",
+        "bullets": ["Catalog", "CLI", "Python SDK", "Node SDK"]
+      }
+    }
+  ]
+}

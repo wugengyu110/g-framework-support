@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@500;600;700&family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+/* 寒蝉半圆体：封面/字幕圆润字；block 避免成片截图落到回退字体 */
+@font-face {
+  font-family: 'ChillRoundM';
+  src: url('/fonts/ChillRoundM.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: block;
+}
+
+:root {
+  --ink: #12263a;
+  --accent: #0f766e;
+  --bg: #e7eef4;
+  --font-round: 'ChillRoundM', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Noto Serif SC', 'Outfit', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 'Noto Sans SC', 'Outfit', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --cover-yellow: #ffe566;
+  --cover-ink: #0a0a0a;
+  font-family: var(--font-body);
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--ink);
+  background:
+    radial-gradient(90% 60% at 0% 0%, rgba(45, 212, 191, 0.16), transparent 50%),
+    radial-gradient(70% 50% at 100% 0%, rgba(14, 116, 144, 0.14), transparent 45%),
+    linear-gradient(180deg, #eef3f7 0%, #e2eaf1 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+}
+
+/* headless render: lock canvas（4:3 · 1920×1440） */
+html.render-mode,
+html.render-mode body,
+html.render-mode #root {
+  width: 1920px;
+  height: 1440px;
+  overflow: hidden;
+  background: #000;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}

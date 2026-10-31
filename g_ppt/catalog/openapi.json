@@ -1,0 +1,1459 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "G-PPT API",
+    "version": "0.1.0",
+    "description": "模板 catalog + 媒体资产 + 时间轴渲染（可叠旁白/字幕）。长成片用 POST /api/jobs/render-show 异步提交，再 GET /api/jobs/{id} 轮询。短语音拼接见 POST /api/audio/concat（工具）。"
+  },
+  "tags": [
+    {
+      "name": "catalog",
+      "description": "模板 / 节目包契约"
+    },
+    {
+      "name": "assets",
+      "description": "图片 / 视频 / 音频 / 字幕上传"
+    },
+    {
+      "name": "audio",
+      "description": "音频工具（concat）"
+    },
+    {
+      "name": "render",
+      "description": "PNG / MP4 同步渲染"
+    },
+    {
+      "name": "jobs",
+      "description": "异步成片任务"
+    },
+    {
+      "name": "system",
+      "description": "健康与自检"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Doctor": {
+        "type": "object",
+        "properties": {
+          "npm": {
+            "type": "boolean"
+          },
+          "node": {
+            "type": "boolean"
+          },
+          "ffmpeg": {
+            "type": "boolean"
+          },
+          "ffprobe": {
+            "type": "boolean"
+          },
+          "catalog_exists": {
+            "type": "boolean"
+          },
+          "web_dist_exists": {
+            "type": "boolean"
+          },
+          "repo_root": {
+            "type": "string"
+          },
+          "render_base_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "output_dir": {
+            "type": "string"
+          },
+          "assets_dir": {
+            "type": "string"
+          },
+          "jobs_dir": {
+            "type": "string"
+          },
+          "concurrency": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "npm",
+          "node",
+          "ffmpeg",
+          "catalog_exists",
+          "web_dist_exists",
+          "repo_root",
+          "render_base_url",
+          "output_dir"
+        ]
+      },
+      "Pack": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "TemplateContract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "compare_two_col_v1"
+          },
+          "pack": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "order": {
+            "type": "number"
+          },
+          "schema": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "JSON Schema（由模板 Zod 导出）"
+          },
+          "demo": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "合法示例 props，可作 few-shot"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateInputField"
+            },
+            "description": "字段摘要：必填 / 类型 / minItems / maxItems"
+          }
+        },
+        "required": [
+          "id",
+          "pack",
+          "type",
+          "name",
+          "description",
+          "tags",
+          "schema",
+          "demo",
+          "inputs"
+        ]
+      },
+      "TemplateInputField": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          },
+          "items": {
+            "type": "string"
+          },
+          "minItems": {
+            "type": "number"
+          },
+          "maxItems": {
+            "type": "number"
+          },
+          "fields": {
+            "type": "array",
+            "items": {},
+            "description": "嵌套 object 字段（结构同本 schema）"
+          }
+        },
+        "required": [
+          "name",
+          "required",
+          "type"
+        ]
+      },
+      "CatalogRefreshResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "packs": {
+            "type": "number"
+          },
+          "templates": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "packs",
+          "templates"
+        ]
+      },
+      "AssetUploadResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "example": "/media/1710000000_photo.png"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "src": {
+            "type": "string",
+            "example": "asset:1710000000_photo.png"
+          }
+        },
+        "required": [
+          "ok",
+          "id",
+          "path",
+          "url",
+          "content_type",
+          "size",
+          "src"
+        ]
+      },
+      "Fail": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "error"
+        ]
+      },
+      "AssetUploadBody": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "图片、mp4、音频或 srt"
+          }
+        }
+      },
+      "AudioConcatResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string",
+            "example": "asset:….m4a"
+          },
+          "duration_sec": {
+            "type": "number"
+          },
+          "parts": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "id",
+          "path",
+          "url",
+          "src",
+          "duration_sec",
+          "parts"
+        ]
+      },
+      "AudioConcatBody": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "短语音 asset:<id> 列表，按顺序拼接",
+            "example": [
+              "asset:a.mp3",
+              "asset:b.mp3"
+            ]
+          },
+          "filename": {
+            "type": "string",
+            "example": "full_narration.m4a"
+          }
+        },
+        "required": [
+          "sources"
+        ]
+      },
+      "AudioTempoResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string",
+            "example": "asset:….wav"
+          },
+          "duration_sec": {
+            "type": "number"
+          },
+          "speed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "id",
+          "path",
+          "url",
+          "src",
+          "duration_sec",
+          "speed"
+        ]
+      },
+      "AudioTempoBody": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "待变速音频 asset:<id> 或可解析路径",
+            "example": "asset:narration_000.wav"
+          },
+          "speed": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2,
+            "description": "ffmpeg atempo 倍率，0.5–2.0；1=不变",
+            "example": 1.2
+          },
+          "filename": {
+            "type": "string",
+            "example": "narration_000.wav"
+          }
+        },
+        "required": [
+          "source",
+          "speed"
+        ]
+      },
+      "RenderSlideResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "duration_sec": {
+            "type": "number"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "template_id",
+          "format",
+          "path"
+        ]
+      },
+      "RenderSlideBody": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "example": "compare_two_col_v1"
+          },
+          "props": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "省略则用模板 demo"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "mp4"
+            ],
+            "example": "png"
+          },
+          "duration_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 5
+          },
+          "filename": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "template_id"
+        ]
+      },
+      "RenderShowResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "timeline_path": {
+            "type": "string"
+          },
+          "subtitle_path": {
+            "type": "string"
+          },
+          "total_sec": {
+            "type": "number"
+          },
+          "scenes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "path",
+          "timeline_path",
+          "total_sec",
+          "scenes"
+        ]
+      },
+      "RenderShowBody": {
+        "type": "object",
+        "properties": {
+          "scenes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Scene"
+            },
+            "minItems": 1
+          },
+          "filename": {
+            "type": "string",
+            "example": "show.mp4"
+          },
+          "subtitle_src": {
+            "type": "string",
+            "description": "成片绝对时间轴 SRT（asset:<id>）；优先于各 scene.cues",
+            "example": "asset:full.srt"
+          },
+          "burn_in": {
+            "type": "boolean",
+            "description": "true 硬烧字幕；默认 false（sidecar .srt + 软挂 mov_text）",
+            "example": false
+          },
+          "presenter": {
+            "$ref": "#/components/schemas/PresenterOverlay"
+          }
+        },
+        "required": [
+          "scenes"
+        ]
+      },
+      "Scene": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/TemplateScene"
+          },
+          {
+            "$ref": "#/components/schemas/ImageScene"
+          },
+          {
+            "$ref": "#/components/schemas/VideoScene"
+          }
+        ]
+      },
+      "TemplateScene": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "template"
+            ],
+            "description": "省略时默认为 template（兼容旧 JSON）"
+          },
+          "template_id": {
+            "type": "string",
+            "example": "title_mark_split_v1"
+          },
+          "props": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "duration_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "无 audio_src 时的画面时长；有旁白则以音频时长为准",
+            "example": 3
+          },
+          "audio_src": {
+            "type": "string",
+            "description": "该段旁白 asset:<id>；有则画面时长跟音频",
+            "example": "asset:narration_01.mp3"
+          },
+          "cues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "end",
+                "text"
+              ]
+            },
+            "description": "相对本段起点的字幕 cue（秒）"
+          }
+        },
+        "required": [
+          "template_id",
+          "props"
+        ]
+      },
+      "ImageScene": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image"
+            ]
+          },
+          "src": {
+            "type": "string",
+            "description": "asset:<id> / assets 内文件名 / 容器内绝对路径",
+            "example": "asset:1710000000_photo.png"
+          },
+          "duration_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 4
+          },
+          "fit": {
+            "type": "string",
+            "enum": [
+              "contain",
+              "cover"
+            ],
+            "example": "contain"
+          },
+          "audio_src": {
+            "type": "string",
+            "description": "该段旁白；有则画面时长跟音频"
+          },
+          "cues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "end",
+                "text"
+              ]
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "src"
+        ]
+      },
+      "VideoScene": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "video"
+            ]
+          },
+          "src": {
+            "type": "string",
+            "description": "asset:<id> / assets 内文件名 / 容器内绝对路径",
+            "example": "asset:1710000000_clip.mp4"
+          },
+          "trim_start_sec": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "trim_end_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "省略则到片尾",
+            "example": 10
+          },
+          "audio_src": {
+            "type": "string",
+            "description": "替换该段音轨的旁白；有则按音频时长对齐画面"
+          },
+          "cues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "end",
+                "text"
+              ]
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "src"
+        ]
+      },
+      "PresenterOverlay": {
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string",
+            "description": "人像 mp4：asset:<id> / assets 相对路径 / 绝对路径",
+            "example": "presenter/talking.mp4"
+          },
+          "size": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "圆形直径 px，默认 280",
+            "example": 280
+          },
+          "margin": {
+            "type": "number",
+            "minimum": 0,
+            "description": "距右/下边距 px，默认 48",
+            "example": 48
+          },
+          "keep_audio": {
+            "type": "boolean",
+            "description": "true 保留人像音轨；默认 false（静音，只用主片旁白）",
+            "example": false
+          }
+        },
+        "required": [
+          "src"
+        ],
+        "description": "右下角圆形人像画中画；短于主片则循环，长于主片则裁剪；type=title 封面时段不显示"
+      },
+      "JobEnqueueResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued"
+            ]
+          }
+        },
+        "required": [
+          "ok",
+          "job_id",
+          "status"
+        ]
+      },
+      "JobProgress": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "scene": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "scene",
+          "total"
+        ]
+      },
+      "JobResult": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "timeline_path": {
+            "type": "string"
+          },
+          "subtitle_path": {
+            "type": "string"
+          },
+          "total_sec": {
+            "type": "number"
+          },
+          "scenes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path",
+          "timeline_path",
+          "total_sec",
+          "scenes"
+        ]
+      },
+      "JobRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "render_show"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "error"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/JobProgress"
+          },
+          "result": {
+            "$ref": "#/components/schemas/JobResult"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "created_at"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "健康检查",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/doctor": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "环境自检",
+        "responses": {
+          "200": {
+            "description": "doctor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Doctor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/packs": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "节目包列表",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "description": "默认重建 catalog；传 false 读磁盘缓存",
+              "example": "true"
+            },
+            "required": false,
+            "description": "默认重建 catalog；传 false 读磁盘缓存",
+            "name": "refresh",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "packs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pack"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "模板列表（含 schema / demo / inputs）",
+        "description": "Agent 选版用。每项含 JSON Schema、示例 props、字段条数约束。默认 refresh 重建 catalog。",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "description": "默认重建 catalog；传 false 读磁盘缓存",
+              "example": "true"
+            },
+            "required": false,
+            "description": "默认重建 catalog；传 false 读磁盘缓存",
+            "name": "refresh",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "default"
+            },
+            "required": false,
+            "name": "pack",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "compare"
+            },
+            "required": false,
+            "name": "type",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateContract"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates/{id}/schema": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "单模板完整契约",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "compare_two_col_v1"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "description": "默认重建 catalog；传 false 读磁盘缓存",
+              "example": "true"
+            },
+            "required": false,
+            "description": "默认重建 catalog；传 false 读磁盘缓存",
+            "name": "refresh",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateContract"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/refresh": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "强制重建 catalog",
+        "responses": {
+          "200": {
+            "description": "refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogRefreshResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assets": {
+      "post": {
+        "tags": [
+          "assets"
+        ],
+        "summary": "上传图片 / 视频 / 音频 / 字幕到媒体库",
+        "description": "multipart 字段名 file。返回 id / src（asset:<id>），可写入 show scene（含 audio_src、subtitle_src）。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetUploadBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetUploadResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "missing file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audio/concat": {
+      "post": {
+        "tags": [
+          "audio"
+        ],
+        "summary": "短语音拼接成长音频（工具）",
+        "description": "按顺序 concat 多段音频，写入 assets。成片主路径请用 render/show 的按段 audio_src，不必先拼长轨。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioConcatBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "concatenated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioConcatResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation / ffmpeg error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audio/tempo": {
+      "post": {
+        "tags": [
+          "audio"
+        ],
+        "summary": "整段音频 atempo 变速（工具）",
+        "description": "用 ffmpeg atempo 对已生成音频整体加速/减速（0.5–2.0），写入 assets。口播语速请走此路径，不要依赖 TTS speed。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioTempoBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "tempo applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTempoResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation / ffmpeg error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/render/slide": {
+      "post": {
+        "tags": [
+          "render"
+        ],
+        "summary": "渲染单页 PNG / MP4",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderSlideBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "rendered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderSlideResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation / render error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/render/show": {
+      "post": {
+        "tags": [
+          "render"
+        ],
+        "summary": "时间轴合成成片（画面 + 可选旁白 + 字幕）",
+        "description": "同步等待成片。长任务请用 POST /api/jobs/render-show，避免网关超时。scenes 可混排 template / image / video；每段可带 audio_src 与 cues。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderShowBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "show mp4",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderShowResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation / render error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/render-show": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "异步提交 show 成片任务",
+        "description": "请求体与 POST /api/render/show 相同，立刻返回 job_id。用 GET /api/jobs/{id} 轮询 status。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderShowBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobEnqueueResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "查询异步任务状态",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/JobRecord"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

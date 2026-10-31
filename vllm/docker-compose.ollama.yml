@@ -1,0 +1,27 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - support-net
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./local_ollama:/root/.ollama
+    restart: on-failure
+
+networks:
+  # 跨 compose 栈共享（g-framework 各项目 backend 亦挂此网），故由外部创建：
+  #   docker network create g-support-net
+  support-net:
+    external: true
+    name: g-support-net

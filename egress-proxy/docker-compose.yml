@@ -1,0 +1,27 @@
+# 出站代理（v2rayA：粘贴订阅 → 点选节点 → 启动，比 3X-UI 省事）
+# 启动：在 support 仓根目录  docker compose up -d egress-proxy
+#
+# 面板：http://<宿主机>:2017  （首次打开自注册管理员）
+# HTTP 代理：容器内 egress-proxy:7897（映射到 v2rayA 的 20171）
+services:
+  egress-proxy:
+    image: mzz2017/v2raya:latest
+    container_name: egress-proxy
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      V2RAYA_LOG_FILE: /tmp/v2raya.log
+    volumes:
+      - ./data:/etc/v2raya
+    ports:
+      - "${EGRESS_PROXY_PANEL_PORT:-2017}:2017"
+      # 对外仍用 7897，与 g-framework .env 的 PROXY_PORT 一致
+      - "${EGRESS_PROXY_MIXED_PORT:-7897}:20171"
+      - "${EGRESS_PROXY_SOCKS_PORT:-20170}:20170"
+    networks:
+      - support-net
+
+networks:
+  support-net:
+    external: true
+    name: g-support-net

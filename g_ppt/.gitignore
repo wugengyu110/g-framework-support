@@ -1,0 +1,25 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+frontend/node_modules
+frontend/dist
+dist
+*.local
+output
+assets/*
+!assets/presenter/
+assets/presenter/*
+!assets/presenter/.gitkeep
+jobs
+sdk/python/.venv
+**/*.egg-info
+**/__pycache__
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

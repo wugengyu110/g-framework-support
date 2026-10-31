@@ -1,0 +1,35 @@
+{
+  "scenes": [
+    {
+      "template_id": "title_mark_split_v1",
+      "duration_sec": 2,
+      "props": {
+        "badge": "Demo",
+        "title": "G-PPT Show",
+        "subtitle": "template + image + video on one timeline",
+        "meta": "smoke test"
+      }
+    },
+    {
+      "kind": "image",
+      "src": "REPLACE_WITH_asset:id_from_upload.png",
+      "duration_sec": 3,
+      "fit": "contain"
+    },
+    {
+      "kind": "video",
+      "src": "REPLACE_WITH_asset:id_from_upload.mp4",
+      "trim_start_sec": 0,
+      "trim_end_sec": 5
+    },
+    {
+      "template_id": "bullets_focus_v1",
+      "duration_sec": 3,
+      "props": {
+        "section": "Test",
+        "title": "Show render works",
+        "bullets": ["Catalog", "Assets", "CLI", "Python SDK"]
+      }
+    }
+  ]
+}

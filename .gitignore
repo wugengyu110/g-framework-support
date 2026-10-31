@@ -1,0 +1,92 @@
+# --- secrets & local env ---
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+
+# --- editor / OS ---
+.DS_Store
+.idea/
+.vscode/
+**/.cursor/
+*.swp
+*~
+
+# --- Python / Node junk ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+**/node_modules/
+**/dist/
+*.log
+
+# --- runtime outputs & jobs ---
+**/outputs/
+**/output/
+**/jobs/
+**/TEMP/
+**/logs/
+**/TEMP
+
+# --- media / 资料类（音色 wav、上传资产、测试音视频）---
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.mp4
+*.webm
+*.mov
+*.mkv
+*.srt
+*.pkl
+
+# --- model weights & local model trees ---
+**/GPT_weights*/
+**/SoVITS_weights*/
+**/*_weights/
+**/vllm_models/
+**/local_ollama/
+**/*.safetensors
+**/*.bin
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.tar
+**/*.tar.gz
+
+# --- vendor / upstream full trees（只保留 compose + shim + 小配置）---
+gpt-sovits/*
+!gpt-sovits/docker-compose.yaml
+!gpt-sovits/g_framework_tts_shim.py
+!gpt-sovits/voices/
+gpt-sovits/voices/*
+!gpt-sovits/voices/catalog.json
+!gpt-sovits/voices/README.md
+
+# cosyvoice：排除数据与杂项，保留编排与薄服务代码
+cosyvoice/gpt-sovits-data/
+cosyvoice/**/prompt.wav
+cosyvoice/测试.wav
+cosyvoice/docker-compose copy.yml
+cosyvoice/neosun100:cosyvoice:v3.4.0.md
+
+# vllm：只保留 compose
+vllm/*
+!vllm/docker-compose.ollama.yml
+!vllm/docker-compose-vllm.yml
+
+# egress-proxy：v2rayA 配置与订阅数据
+egress-proxy/data/*
+!egress-proxy/data/.gitkeep
+
+# g_ppt 运行产物与大素材（源码与 catalog 入仓）
+g_ppt/assets/*
+!g_ppt/assets/presenter/
+g_ppt/assets/presenter/*
+# presenter 视频属资料，不入仓；本地自行放置
+!g_ppt/assets/presenter/.gitkeep
+
+# nested git backups
+**/.git.bak-before-support-monorepo/

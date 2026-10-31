@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>行 · 心 · 身</title>
+    <link rel="stylesheet" href="xing-xin-shen-demo.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- viewBox 须与 CSS 中 --stage-vb-w / --stage-vb-h 一致 -->
+      <svg id="stage" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- 渐变矢量用固定百分比，避免部分引擎在 linearGradient 上解析 var() 异常 -->
+          <linearGradient id="arenaGradient" x1="20%" y1="15%" x2="80%" y2="90%">
+            <stop offset="0%" stop-color="var(--arena-grad-highlight)" />
+            <stop offset="45%" stop-color="var(--arena-grad-inner)" />
+            <stop offset="100%" stop-color="var(--arena-grad-outer)" />
+          </linearGradient>
+          <!-- 替代 feBlur 内阴影：纯渐变叠层，无滤镜裁切问题 -->
+          <radialGradient id="arenaVignette" cx="50%" cy="46%" r="72%">
+            <stop offset="52%" stop-color="#000000" stop-opacity="0" />
+            <stop offset="100%" stop-color="#000000" stop-opacity="0.14" />
+          </radialGradient>
+          <linearGradient
+            id="lineGradientAB"
+            x1="var(--line-grad-x1)"
+            y1="var(--line-grad-y1)"
+            x2="var(--line-grad-x2)"
+            y2="var(--line-grad-y2)"
+          >
+            <stop offset="0%" stop-color="var(--line-ab-a)" />
+            <stop offset="var(--line-grad-stop-mid)" stop-color="var(--line-ab-b)" />
+            <stop offset="100%" stop-color="var(--line-ab-c)" />
+          </linearGradient>
+          <linearGradient
+            id="lineGradientBC"
+            x1="var(--line-grad-x1)"
+            y1="var(--line-grad-y1)"
+            x2="var(--line-grad-x2)"
+            y2="var(--line-grad-y2)"
+          >
+            <stop offset="0%" stop-color="var(--line-bc-a)" />
+            <stop offset="var(--line-grad-stop-mid)" stop-color="var(--line-bc-b)" />
+            <stop offset="100%" stop-color="var(--line-bc-c)" />
+          </linearGradient>
+          <linearGradient
+            id="lineGradientCA"
+            x1="var(--line-grad-x1)"
+            y1="var(--line-grad-y1)"
+            x2="var(--line-grad-x2)"
+            y2="var(--line-grad-y2)"
+          >
+            <stop offset="0%" stop-color="var(--line-ca-a)" />
+            <stop offset="var(--line-grad-stop-mid)" stop-color="var(--line-ca-b)" />
+            <stop offset="100%" stop-color="var(--line-ca-c)" />
+          </linearGradient>
+          <radialGradient
+            id="ballGradient0"
+            cx="var(--ball-grad-cx)"
+            cy="var(--ball-grad-cy)"
+            r="var(--ball-grad-r)"
+          >
+            <stop offset="0%" stop-color="var(--ball-0-highlight)" />
+            <stop offset="var(--ball-grad-stop-mid)" stop-color="var(--ball-0-fill)" />
+            <stop offset="100%" stop-color="var(--ball-0-edge)" />
+          </radialGradient>
+          <radialGradient
+            id="ballGradient1"
+            cx="var(--ball-grad-cx)"
+            cy="var(--ball-grad-cy)"
+            r="var(--ball-grad-r)"
+          >
+            <stop offset="0%" stop-color="var(--ball-1-highlight)" />
+            <stop offset="var(--ball-grad-stop-mid)" stop-color="var(--ball-1-fill)" />
+            <stop offset="100%" stop-color="var(--ball-1-edge)" />
+          </radialGradient>
+          <radialGradient
+            id="ballGradient2"
+            cx="var(--ball-grad-cx)"
+            cy="var(--ball-grad-cy)"
+            r="var(--ball-grad-r)"
+          >
+            <stop offset="0%" stop-color="var(--ball-2-highlight)" />
+            <stop offset="var(--ball-grad-stop-mid)" stop-color="var(--ball-2-fill)" />
+            <stop offset="100%" stop-color="var(--ball-2-edge)" />
+          </radialGradient>
+          <filter
+            id="ballDropShadow"
+            x="var(--ball-shadow-filter-x)"
+            y="var(--ball-shadow-filter-y)"
+            width="var(--ball-shadow-filter-w)"
+            height="var(--ball-shadow-filter-h)"
+          >
+            <feDropShadow
+              dx="var(--ball-shadow-dx)"
+              dy="var(--ball-shadow-y)"
+              stdDeviation="var(--ball-shadow-blur)"
+              flood-color="var(--ball-shadow-color)"
+              flood-opacity="var(--ball-shadow-opacity)"
+            />
+          </filter>
+          <clipPath id="innerClip">
+            <circle id="innerClipCircle" class="arena-clip" />
+          </clipPath>
+        </defs>
+        <rect class="arena-rect" />
+        <circle id="arenaFillCircle" class="arena-fill" />
+        <circle id="arenaVignetteCircle" class="arena-vignette" />
+        <circle id="arenaEdgeCircle" class="arena-edge" />
+        <g clip-path="url(#innerClip)">
+          <g id="lines">
+            <line id="line-ab" class="link-line" />
+            <line id="line-bc" class="link-line" />
+            <line id="line-ca" class="link-line" />
+          </g>
+          <g id="balls">
+            <g id="ball0" filter="url(#ballDropShadow)">
+              <circle class="ball-disk" />
+              <text class="ball-label" text-anchor="middle" dominant-baseline="central">行</text>
+            </g>
+            <g id="ball1" filter="url(#ballDropShadow)">
+              <circle class="ball-disk" />
+              <text class="ball-label" text-anchor="middle" dominant-baseline="central">心</text>
+            </g>
+            <g id="ball2" filter="url(#ballDropShadow)">
+              <circle class="ball-disk" />
+              <text class="ball-label" text-anchor="middle" dominant-baseline="central">身</text>
+            </g>
+          </g>
+          <text
+            id="arenaWatermark"
+            class="arena-watermark"
+            x="200"
+            y="200"
+            text-anchor="middle"
+            dominant-baseline="central"
+          >
+            三休
+          </text>
+        </g>
+      </svg>
+    </div>
+    <script src="xing-xin-shen-demo.js"></script>
+  </body>
+</html>
