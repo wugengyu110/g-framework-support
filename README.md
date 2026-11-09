@@ -10,7 +10,7 @@ g-framework 外围支撑服务编排仓：Docker Compose、薄适配 shim、业�
 |------|------|
 | `docker-compose.yml` | 根编排（`include` 各子服务） |
 | `egress-proxy/` | 出站代理（v2rayA：粘贴订阅、点选节点；供 g-framework `PROXY_HOST=egress-proxy`） |
-| `alist/` | Alist WebDAV（挂载阿里云盘 Open，供媒体平台可写导出；见 `alist/README.md`） |
+| `alist/` | Alist WebDAV（同机 `g-support-net`，`http://alist:5244/dav/`；不暴露公网；见 `alist/README.md`） |
 | `g_ppt/` | PPT 渲染服务（原独立仓迁入） |
 | `indextts2/` | IndexTTS2 compose + g_media 兼容 shim |
 | `gpt-sovits/` | 仅 compose + shim + voices 目录说明（上游源码/权重本地自备） |
@@ -31,7 +31,7 @@ docker compose up -d
 
 # 按服务
 docker compose up -d egress-proxy   # 可选：网页配置代理，见 egress-proxy/README.md
-docker compose up -d alist          # 可选：WebDAV + 阿里云盘 Open，见 alist/README.md
+docker compose up -d alist          # 可选：同机 WebDAV + 阿里云盘 Open（勿公网暴露），见 alist/README.md
 docker compose up -d g-ppt
 docker compose up -d indextts2
 docker compose up -d cosyvoice
