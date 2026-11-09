@@ -8,8 +8,6 @@ include:
   - path: ./egress-proxy/docker-compose.yml
   - path: ./alist/docker-compose.yml
   # - path: ./g_ppt/docker-compose.yml
-  # - path: ./gpt-sovits/docker-compose.yaml
-  # - path: ./cosyvoice/docker-compose.cosyvoice.yml
   # - path: ./indextts2/docker-compose.yml
   # - path: ./vllm/docker-compose-vllm.yml
   - path: ./vllm/docker-compose.ollama.yml

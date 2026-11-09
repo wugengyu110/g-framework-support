@@ -10,7 +10,7 @@
 | 路径 | 说明 |
 |------|------|
 | `docker-compose.yml` | 服务定义（GPU、端口、挂载、启动命令） |
-| `g_framework_tts_shim.py` | 把上游原生 API 适配为 CosyVoice 同形 HTTP，供 `g_media.tts.IndexTts2Client` 使用 |
+| `g_framework_tts_shim.py` | 把上游原生 API 适配为 g_media 统一 HTTP（`/v1/audio/speech` 等），供 `g_media.tts.IndexTts2Client` 使用 |
 | `voices/` | 自定义参考音色（见 `voices/README.md`） |
 | `outputs/` | 合成/上传产物持久化 |
 
@@ -22,11 +22,11 @@
 - `GET /v1/voices/custom`
 - `POST /v1/audio/speech`（`input` + `voice`）
 
-shim 跑在同容器 `:8003`，转发到上游 `:8002`，并聚合内置 `voice_01`…`voice_12`、`voices/` 与缓存 speaker。与 GPT-SoVITS 的 shim 同一思路。
+shim 跑在同容器 `:8003`，转发到上游 `:8002`，并聚合内置 `voice_01`…`voice_12`、`voices/` 与缓存 speaker。
 
 ## 启动
 
-需已有网络 `g-support-net`；根目录 `docker-compose.yml` 已 include 本服务。
+需已有网络 `g-support-net`。在根 `docker-compose.yml` 中取消注释 `indextts2/docker-compose.yml` 的 include 后，可在仓库根目录启停；否则在本目录执行 `docker compose up -d`。
 
 ```bash
 docker network create g-support-net   # 已有可跳过
@@ -36,7 +36,7 @@ docker compose up -d indextts2
 
 冷启动约 **2–3 分钟**（加载模型）。上游未就绪时 shim `/health` 返回 `status=starting`（HTTP 200），勿当作永久故障。
 
-默认挂 **GPU 1**（`device_ids: ["1"]`），避免与 GPT-SoVITS/CosyVoice 抢 GPU 0。可按机器改 compose。
+默认挂 **GPU 1**（`device_ids: ["1"]`）。单机仅跑本 TTS 时可改为 `"0"`。
 
 ## 端口
 
