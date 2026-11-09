@@ -81,6 +81,10 @@ vllm/*
 egress-proxy/data/*
 !egress-proxy/data/.gitkeep
 
+# alist：数据库、令牌与存储配置
+alist/data/*
+!alist/data/.gitkeep
+
 # g_ppt 运行产物与大素材（源码与 catalog 入仓）
 g_ppt/assets/*
 !g_ppt/assets/presenter/
