@@ -6,6 +6,7 @@
 # g-ppt 已设 pull_policy: build，up 时会强制重建该镜像
 include:
   - path: ./egress-proxy/docker-compose.yml
+  - path: ./alist/docker-compose.yml
   # - path: ./g_ppt/docker-compose.yml
   # - path: ./gpt-sovits/docker-compose.yaml
   # - path: ./cosyvoice/docker-compose.cosyvoice.yml
