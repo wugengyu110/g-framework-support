@@ -405,6 +405,22 @@ export const MindmapNodeSchema = z
   })
   .openapi('MindmapNode')
 
+export const PerShotNarrationSchema = z
+  .object({
+    shot_index: z.number().int().nonnegative().optional().openapi({
+      description: '对应 shots 下标；省略则按 per_shot_narration 数组顺序',
+    }),
+    audio_src: z.string().optional().openapi({
+      description: '本镜旁白 asset:<id>',
+      example: 'asset:shot-03.mp3',
+    }),
+    duration_sec: z.number().positive().optional().openapi({
+      description: '本镜旁白时长；用于重算 shots.t',
+    }),
+    text: z.string().optional().openapi({ description: '旁白稿（仅元数据）' }),
+  })
+  .openapi('PerShotNarration')
+
 export const MindmapShotSchema = z
   .object({
     t: z.number().nonnegative().openapi({ description: '到达并停住的秒数', example: 2.8 }),
@@ -415,6 +431,13 @@ export const MindmapShotSchema = z
       description: '从上一镜移过来用的秒数；省略则整段间隔都在移动',
     }),
     padding: z.number().nonnegative().optional(),
+    duration_sec: z.number().positive().optional().openapi({
+      description:
+        '本镜停留秒数（到下一镜）；TTS 重定时由 media 写入；有则重算时间轴 t',
+    }),
+    audio_src: z.string().optional().openapi({
+      description: '本镜旁白；无成片 audio_src 时按镜顺序 concat',
+    }),
   })
   .openapi('MindmapShot')
 
@@ -458,6 +481,13 @@ export const RenderMindmapBodySchema = z
       description: '成片旁白 asset:<id>；有则 mp4 混入 AAC，时长以音频为准',
       example: 'asset:narration.mp3',
     }),
+    per_shot_narration: z
+      .array(PerShotNarrationSchema)
+      .optional()
+      .openapi({
+        description:
+          'media per_shot_narration：与 shots 对齐；可只用 duration_sec 重定时或提供分镜 audio_src',
+      }),
     subtitle_src: z.string().optional().openapi({
       description: '成片绝对时间轴 SRT（asset:<id>）；优先于 cues',
       example: 'asset:full.srt',

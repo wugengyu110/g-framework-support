@@ -1094,6 +1094,13 @@
             "description": "成片旁白 asset:<id>；有则 mp4 混入 AAC，时长以音频为准",
             "example": "asset:narration.mp3"
           },
+          "per_shot_narration": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerShotNarration"
+            },
+            "description": "media per_shot_narration：与 shots 对齐；可只用 duration_sec 重定时或提供分镜 audio_src"
+          },
           "subtitle_src": {
             "type": "string",
             "description": "成片绝对时间轴 SRT（asset:<id>）；优先于 cues",
@@ -1226,12 +1233,45 @@
           "padding": {
             "type": "number",
             "minimum": 0
+          },
+          "duration_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "本镜停留秒数（到下一镜）；TTS 重定时由 media 写入；有则重算时间轴 t"
+          },
+          "audio_src": {
+            "type": "string",
+            "description": "本镜旁白；无成片 audio_src 时按镜顺序 concat"
           }
         },
         "required": [
           "t",
           "focus"
         ]
+      },
+      "PerShotNarration": {
+        "type": "object",
+        "properties": {
+          "shot_index": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "对应 shots 下标；省略则按 per_shot_narration 数组顺序"
+          },
+          "audio_src": {
+            "type": "string",
+            "description": "本镜旁白 asset:<id>",
+            "example": "asset:shot-03.mp3"
+          },
+          "duration_sec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "本镜旁白时长；用于重算 shots.t"
+          },
+          "text": {
+            "type": "string",
+            "description": "旁白稿（仅元数据）"
+          }
+        }
       },
       "JobEnqueueResult": {
         "type": "object",

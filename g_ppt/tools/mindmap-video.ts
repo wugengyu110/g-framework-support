@@ -19,9 +19,11 @@ import { dirname, extname, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import {
   type AbsoluteCue,
+  concatAudioSourcesInWork,
   frontendRoot,
   muxNarrationOntoVideo,
   outputDir,
+  probeDurationSec,
   resolveMediaSrc,
   runScreenshotWorker,
   safeOutputFilename,
@@ -106,11 +108,23 @@ export type MindmapCanvas = {
   edges?: MindmapEdge[]
 }
 
+/** media `per_shot_narration[]` 与 shots 按下标对齐（可用 shot_index 覆盖） */
+export type PerShotNarration = {
+  shot_index?: number
+  audio_src?: string
+  duration_sec?: number
+  text?: string
+}
+
 export type MindmapShot = {
   t: number
   focus: string | string[]
   move?: number
   padding?: number
+  /** 本镜停留时长（到下一镜起始）；TTS 重定时后由 media 填入 */
+  duration_sec?: number
+  /** 单镜旁白 asset:<id>（无顶层 audio_src 时可按镜 concat） */
+  audio_src?: string
 }
 
 export type RenderMindmapInput = {
@@ -131,6 +145,11 @@ export type RenderMindmapInput = {
   vault?: string
   /** 旁白 asset:<id>；有则成片混入 AAC 音轨（时长以音频为准） */
   audio_src?: string
+  /**
+   * media PR #18：按镜 TTS 元数据；与 shots[] 对齐。
+   * 无顶层 audio_src 时按镜 audio_src concat；duration_sec 参与重算 shots.t。
+   */
+  per_shot_narration?: PerShotNarration[]
   subtitle_src?: string
   burn_in?: boolean
   bgm_src?: string
@@ -496,6 +515,94 @@ function shotMoves(shots: MindmapShot[]): number[] {
   return moves
 }
 
+function narrationByShotIndex(items?: PerShotNarration[]): Map<number, PerShotNarration> {
+  const map = new Map<number, PerShotNarration>()
+  if (!items?.length) return map
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    const idx = item.shot_index ?? i
+    if (idx >= 0) map.set(idx, item)
+  }
+  return map
+}
+
+/** 按镜 duration_sec / per_shot_narration 重算 shots.t 与成片尾停顿时长 */
+export async function retimeMindmapShots(
+  shots: MindmapShot[],
+  holdEnd: number,
+  perShotNarration?: PerShotNarration[],
+): Promise<{ shots: MindmapShot[]; endHoldSec: number; retimed: boolean }> {
+  const narr = narrationByShotIndex(perShotNarration)
+  const n = shots.length
+  const segmentSec: number[] = []
+
+  for (let i = 0; i < n; i++) {
+    const shot = shots[i]
+    const meta = narr.get(i)
+    let seg: number | undefined
+
+    if (typeof shot.duration_sec === 'number' && shot.duration_sec > 0) {
+      seg = shot.duration_sec
+    } else if (typeof meta?.duration_sec === 'number' && meta.duration_sec > 0) {
+      seg = meta.duration_sec
+    } else {
+      const audioRef = shot.audio_src?.trim() || meta?.audio_src?.trim()
+      if (audioRef) {
+        seg = await probeDurationSec(resolveMediaSrc(audioRef))
+      } else if (i < n - 1) {
+        const gap = shots[i + 1].t - shot.t
+        if (gap > 0) seg = gap
+      }
+    }
+    segmentSec.push(seg ?? (i === n - 1 ? holdEnd : 0))
+  }
+
+  const needsRetime = shots.some(
+    (s, i) =>
+      (typeof s.duration_sec === 'number' && s.duration_sec > 0) ||
+      narr.has(i) ||
+      Boolean(s.audio_src?.trim()),
+  )
+
+  if (!needsRetime) {
+    const ordered = [...shots]
+    return { shots: ordered, endHoldSec: holdEnd, retimed: false }
+  }
+
+  let t = 0
+  const retimedShots: MindmapShot[] = []
+  for (let i = 0; i < n; i++) {
+    const shot = shots[i]
+    retimedShots.push({ ...shot, t })
+    if (i < n - 1 && segmentSec[i] > 0) t += segmentSec[i]
+  }
+  const endHoldSec =
+    segmentSec[n - 1] > 0 ? segmentSec[n - 1] : holdEnd
+
+  return { shots: retimedShots, endHoldSec, retimed: true }
+}
+
+async function resolveMindmapNarrationSrc(
+  input: RenderMindmapInput,
+  narr: Map<number, PerShotNarration>,
+  workDir: string,
+): Promise<string | undefined> {
+  const top = input.audio_src?.trim()
+  if (top) return top
+
+  const sources: string[] = []
+  for (let i = 0; i < input.shots.length; i++) {
+    const shot = input.shots[i]
+    const meta = narr.get(i)
+    const src = shot.audio_src?.trim() || meta?.audio_src?.trim()
+    if (src) sources.push(src)
+  }
+  if (!sources.length) return undefined
+  if (sources.length === 1) return sources[0]
+  const merged = await concatAudioSourcesInWork(sources, workDir)
+  return merged
+}
+
 function smoothstep(u: number): number {
   const x = Math.max(0, Math.min(1, u))
   return x * x * (3 - 2 * x)
@@ -711,10 +818,17 @@ export async function apiRenderMindmap(
   const board = boardEnv(input.board)
   const useDynamicBg =
     input.dynamic_bg == null ? envBool(board.USE_DYNAMIC_BG, true) : input.dynamic_bg
+  const timeline = await retimeMindmapShots(
+    input.shots,
+    hold,
+    input.per_shot_narration,
+  )
+  const shots = timeline.shots
   const nodes = new Map(input.canvas.nodes.map((n) => [n.id, n]))
-  const keys = cameraKeys(input.shots, nodes, padding, width, height)
-  const moves = shotMoves(input.shots)
-  const duration = keys[keys.length - 1].t + hold
+  const keys = cameraKeys(shots, nodes, padding, width, height)
+  const moves = shotMoves(shots)
+  const duration = keys[keys.length - 1].t + timeline.endHoldSec
+  const narrByIndex = narrationByShotIndex(input.per_shot_narration)
   const stills = input.stills?.filter((t) => Number.isFinite(t))
   const times = stills?.length
     ? stills
@@ -785,7 +899,7 @@ export async function apiRenderMindmap(
       const dest = resolve(destRoot, `${stem}.mp4`)
       const silentMp4 = resolve(work, 'silent.mp4')
       await encodeJpg(framesDir, fps, silentMp4)
-      const audioSrc = input.audio_src?.trim()
+      const audioSrc = await resolveMindmapNarrationSrc(input, narrByIndex, work)
       let totalSec = duration
       if (audioSrc) {
         const muxed = await muxNarrationOntoVideo(
