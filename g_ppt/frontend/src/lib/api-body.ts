@@ -98,8 +98,58 @@ export const AudioTempoBodySchema = z.object({
   filename: z.string().optional(),
 })
 
+export const MindmapNodeBodySchema = z.object({
+  id: z.string().min(1),
+  type: z.string().optional(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  color: z.string().optional(),
+  text: z.string().optional(),
+  label: z.string().optional(),
+  file: z.string().optional(),
+})
+
+export const MindmapEdgeBodySchema = z.object({
+  fromNode: z.string().optional(),
+  toNode: z.string().optional(),
+  fromSide: z.string().optional(),
+  toSide: z.string().optional(),
+  color: z.string().optional(),
+})
+
+export const MindmapShotBodySchema = z.object({
+  t: z.number().nonnegative(),
+  focus: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+  move: z.number().nonnegative().optional(),
+  padding: z.number().nonnegative().optional(),
+})
+
+/** Obsidian 画布 + 播放时间轴。长片请走 /api/jobs/render-mindmap。 */
+export const RenderMindmapBodySchema = z.object({
+  canvas: z.object({
+    nodes: z.array(MindmapNodeBodySchema).min(1),
+    edges: z.array(MindmapEdgeBodySchema).optional(),
+  }),
+  shots: z.array(MindmapShotBodySchema).min(1),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  fps: z.number().positive().optional(),
+  padding: z.number().nonnegative().optional(),
+  hold_end: z.number().nonnegative().optional(),
+  dynamic_bg: z.boolean().optional(),
+  board: z.record(z.string(), z.string()).optional(),
+  stills: z.array(z.number().nonnegative()).optional(),
+  filename: z.string().optional(),
+  /** canvas file 相对路径 → asset:<id> 或服务端可读路径 */
+  files: z.record(z.string(), z.string()).optional(),
+  vault: z.string().optional(),
+})
+
 export type RenderSlideBody = z.infer<typeof RenderSlideBodySchema>
 export type RenderShowBody = z.infer<typeof RenderShowBodySchema>
 export type AudioConcatBody = z.infer<typeof AudioConcatBodySchema>
 export type AudioTempoBody = z.infer<typeof AudioTempoBodySchema>
+export type RenderMindmapBody = z.infer<typeof RenderMindmapBodySchema>
 export type SceneBody = z.infer<typeof SceneBodySchema>

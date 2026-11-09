@@ -388,6 +388,118 @@ export const AudioTempoResultSchema = z
   })
   .openapi('AudioTempoResult')
 
+export const MindmapNodeSchema = z
+  .object({
+    id: z.string().openapi({ example: 'frame_c0' }),
+    type: z.string().optional().openapi({ example: 'text' }),
+    x: z.number(),
+    y: z.number(),
+    width: z.number().positive(),
+    height: z.number().positive(),
+    color: z.string().optional(),
+    text: z.string().optional(),
+    label: z.string().optional(),
+    file: z.string().optional().openapi({
+      description: 'type=file 时相对 vault 的图片路径',
+    }),
+  })
+  .openapi('MindmapNode')
+
+export const MindmapShotSchema = z
+  .object({
+    t: z.number().nonnegative().openapi({ description: '到达并停住的秒数', example: 2.8 }),
+    focus: z
+      .union([z.string(), z.array(z.string()).min(1)])
+      .openapi({ description: '节点 id，或一组 id 的外接矩形' }),
+    move: z.number().nonnegative().optional().openapi({
+      description: '从上一镜移过来用的秒数；省略则整段间隔都在移动',
+    }),
+    padding: z.number().nonnegative().optional(),
+  })
+  .openapi('MindmapShot')
+
+export const RenderMindmapBodySchema = z
+  .object({
+    canvas: z.object({
+      nodes: z.array(MindmapNodeSchema).min(1),
+      edges: z
+        .array(
+          z.object({
+            fromNode: z.string().optional(),
+            toNode: z.string().optional(),
+            fromSide: z.string().optional(),
+            toSide: z.string().optional(),
+            color: z.string().optional(),
+          }),
+        )
+        .optional(),
+    }),
+    shots: z.array(MindmapShotSchema).min(1),
+    width: z.number().positive().optional().openapi({ example: 2560 }),
+    height: z.number().positive().optional().openapi({ example: 1440 }),
+    fps: z.number().positive().optional().openapi({ example: 24 }),
+    padding: z.number().nonnegative().optional().openapi({ example: 56 }),
+    hold_end: z.number().nonnegative().optional().openapi({ example: 1.6 }),
+    dynamic_bg: z.boolean().optional().openapi({
+      description: '是否嵌入行心身动态背景；省略则读 mindmap-board.env',
+    }),
+    board: z.record(z.string(), z.string()).optional(),
+    stills: z.array(z.number().nonnegative()).optional().openapi({
+      description: '只导出这些秒数的静帧；省略则出整段 mp4',
+    }),
+    filename: z.string().optional().openapi({ example: '第03章-标记.mp4' }),
+    files: z.record(z.string(), z.string()).optional().openapi({
+      description: '画布 file 相对路径 → asset:<id> 或绝对路径',
+    }),
+    vault: z.string().optional().openapi({
+      description: '插图相对路径的根目录（本机渲染时用）',
+    }),
+    audio_src: z.string().optional().openapi({
+      description: '成片旁白 asset:<id>；有则 mp4 混入 AAC，时长以音频为准',
+      example: 'asset:narration.mp3',
+    }),
+    subtitle_src: z.string().optional().openapi({
+      description: '成片绝对时间轴 SRT（asset:<id>）；优先于 cues',
+      example: 'asset:full.srt',
+    }),
+    burn_in: z.boolean().optional().openapi({
+      description: 'true 硬烧字幕；默认 false（sidecar .srt + 软挂 mov_text）',
+      example: false,
+    }),
+    bgm_src: z.string().optional().openapi({
+      description: '成片级循环背景音乐',
+      example: 'asset:bgm.mp3',
+    }),
+    bgm_volume: z.number().min(0).max(1).optional().openapi({
+      description: 'BGM 相对音量 0–1，默认 0.25',
+      example: 0.25,
+    }),
+    cues: z
+      .array(
+        z.object({
+          start: z.number().nonnegative(),
+          end: z.number().positive(),
+          text: z.string(),
+        }),
+      )
+      .optional()
+      .openapi({ description: '成片绝对时间字幕 cue（秒）' }),
+  })
+  .openapi('RenderMindmapBody')
+
+export const RenderMindmapResultSchema = z
+  .object({
+    ok: z.literal(true),
+    format: z.enum(['mp4', 'png']),
+    path: z.string(),
+    paths: z.array(z.string()).optional(),
+    total_sec: z.number(),
+    frames: z.number(),
+    width: z.number(),
+    height: z.number(),
+  })
+  .openapi('RenderMindmapResult')
+
 export const JobIdParamSchema = z.object({
   id: z
     .string()
@@ -400,7 +512,8 @@ export const JobIdParamSchema = z.object({
 
 export const JobProgressSchema = z
   .object({
-    scene: z.number(),
+    scene: z.number().optional(),
+    frame: z.number().optional(),
     total: z.number(),
   })
   .openapi('JobProgress')
@@ -408,17 +521,20 @@ export const JobProgressSchema = z
 export const JobResultSchema = z
   .object({
     path: z.string(),
-    timeline_path: z.string(),
+    paths: z.array(z.string()).optional(),
+    timeline_path: z.string().optional(),
     subtitle_path: z.string().optional(),
-    total_sec: z.number(),
-    scenes: z.number(),
+    total_sec: z.number().optional(),
+    scenes: z.number().optional(),
+    frames: z.number().optional(),
+    format: z.enum(['mp4', 'png']).optional(),
   })
   .openapi('JobResult')
 
 export const JobRecordSchema = z
   .object({
     id: z.string(),
-    kind: z.literal('render_show'),
+    kind: z.enum(['render_show', 'render_mindmap']),
     status: z.enum(['queued', 'running', 'done', 'error']),
     created_at: z.string(),
     started_at: z.string().optional(),

@@ -1,8 +1,76 @@
 (function () {
   const root = document.documentElement; // 获取根节点
+  const query = new URLSearchParams(window.location.search);
   // 幻灯片嵌入：铺满容器，去掉页面底色形成的外圈
-  if (new URLSearchParams(window.location.search).get('embed') === '1') {
+  if (query.get('embed') === '1') {
     root.classList.add('embed')
+  }
+  // 视频背景：圆形舞台按画面长边铺满，不拉成椭圆
+  if (query.get('fit') === 'cover') {
+    root.classList.add('fit-cover')
+  }
+  // 视频背景：圆标高度等于画面高度，左右留白，不裁上下
+  if (query.get('fit') === 'height') {
+    root.classList.add('fit-height')
+  }
+  /** 与 public/xing-xin-shen-tone.env 键名一致，映射到 CSS 变量 */
+  const TONE_CSS = {
+    LINE_OPACITY: "--line-opacity",
+    BALL_DISK_OPACITY: "--ball-disk-opacity",
+    BALL_SHADOW_OPACITY: "--ball-shadow-opacity",
+    STAGE_OPACITY: "--stage-opacity",
+    ARENA_VIGNETTE_OPACITY: "--arena-vignette-opacity",
+    BALL_0_TEXT: "--ball-0-text",
+    BALL_1_TEXT: "--ball-1-text",
+    BALL_2_TEXT: "--ball-2-text",
+    ARENA_WATERMARK_FILL: "--arena-watermark-fill",
+  }
+
+  function envKeyToQuery(key) {
+    const parts = key.toLowerCase().split("_")
+    return parts[0] + parts.slice(1).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("")
+  }
+
+  function parseEnvText(text) {
+    const out = {}
+    for (const line of text.split("\n")) {
+      const t = line.trim()
+      if (!t || t.startsWith("#")) continue
+      const i = t.indexOf("=")
+      if (i < 0) continue
+      out[t.slice(0, i).trim()] = t.slice(i + 1).trim()
+    }
+    return out
+  }
+
+  function applyToneVars(vars) {
+    for (const [key, cssVar] of Object.entries(TONE_CSS)) {
+      const v = vars[key]
+      if (v != null && v !== "") root.style.setProperty(cssVar, v)
+    }
+  }
+
+  function toneFromQuery() {
+    const out = {}
+    for (const key of Object.keys(TONE_CSS)) {
+      const q = query.get(envKeyToQuery(key))
+      if (q !== null) out[key] = q
+    }
+    return out
+  }
+
+  function getLineOpacityFromQuery() {
+    const value = query.get("lineOpacity")
+    if (value === null) return null
+    const opacity = Number.parseFloat(value)
+    if (!Number.isFinite(opacity)) return null
+    return Math.max(0, Math.min(1, opacity))
+  }
+
+  if (query.get("tone") === "faint") {
+    root.classList.add("tone-faint")
+    const fromQuery = toneFromQuery()
+    applyToneVars(fromQuery)
   }
 
   function readPxVar(name, fallback) { // 读取CSS变量，解析为数值
@@ -32,14 +100,6 @@
     return allowedStates.has(state) ? state : "icon"; // 合法返回，否则icon
   }
 
-  function getLineOpacityFromQuery() { // URL获取连线不透明度
-    const value = new URLSearchParams(window.location.search).get("lineOpacity"); // url参数
-    if (value === null) return null; // 没指定
-    const opacity = Number.parseFloat(value); // 解析
-    if (!Number.isFinite(opacity)) return null; // 不合法
-    return Math.max(0, Math.min(1, opacity)); // 限定范围
-  }
-
   function getInitialBallsByState(state) { // 不同状态下的初始球参数
     if (state === "asymmetric") { // 非对称样式
       return [
@@ -58,9 +118,9 @@
   }
 
   const state = getStateFromQuery(); // 当前状态
-  const lineOpacity = getLineOpacityFromQuery(); // 连线透明度
-  if (lineOpacity !== null) { // 如果有URL参数，则覆盖CSS变量
-    root.style.setProperty("--line-opacity", String(lineOpacity)); // 设置CSS变量
+  const lineOpacity = getLineOpacityFromQuery();
+  if (lineOpacity !== null) {
+    root.style.setProperty("--line-opacity", String(lineOpacity));
   }
 
   /**
@@ -173,22 +233,7 @@
     b.vy += j * ny;
   }
 
-  function tick() { // 每帧主循环
-    applySpringPair(balls[0], balls[1], restLenAB); // AB边弹簧
-    applySpringPair(balls[1], balls[2], restLenBC); // BC边弹簧
-    applySpringPair(balls[2], balls[0], restLenCA); // CA边弹簧
-
-    for (const b of balls) { // 移动物体
-      b.x += b.vx; // 位置x
-      b.y += b.vy; // 位置y
-    }
-    for (let i = 0; i < SOLVER_ITERS; i++) { // 约束求解多次迭代
-      resolvePair(balls[0], balls[1]); // AB球体碰撞
-      resolvePair(balls[1], balls[2]); // BC球体碰撞
-      resolvePair(balls[2], balls[0]); // CA球体碰撞
-      for (const b of balls) resolveWalls(b); // 各球碰边界
-    }
-
+  function paint() { // 把当前物理状态画到 SVG
     const [a, b, c] = balls; // a,b,c分别对应三球
     lineAB.setAttribute("x1", a.x); // 更新SVG连线端点
     lineAB.setAttribute("y1", a.y);
@@ -206,8 +251,52 @@
     for (const ball of balls) { // 更新球SVG的变换
       ball.el.setAttribute("transform", `translate(${ball.x},${ball.y})`); // 球平移
     }
-    requestAnimationFrame(tick); // 下一帧
   }
 
-  tick(); // 启动动画
+  function tick() { // 每帧主循环
+    applySpringPair(balls[0], balls[1], restLenAB); // AB边弹簧
+    applySpringPair(balls[1], balls[2], restLenBC); // BC边弹簧
+    applySpringPair(balls[2], balls[0], restLenCA); // CA边弹簧
+
+    for (const b of balls) { // 移动物体
+      b.x += b.vx; // 位置x
+      b.y += b.vy; // 位置y
+    }
+    for (let i = 0; i < SOLVER_ITERS; i++) { // 约束求解多次迭代
+      resolvePair(balls[0], balls[1]); // AB球体碰撞
+      resolvePair(balls[1], balls[2]); // BC球体碰撞
+      resolvePair(balls[2], balls[0]); // CA球体碰撞
+      for (const b of balls) resolveWalls(b); // 各球碰边界
+    }
+    paint();
+  }
+
+  if (
+    query.get("tone") === "faint" &&
+    query.get("driven") !== "1" &&
+    Object.keys(toneFromQuery()).length < Object.keys(TONE_CSS).length
+  ) {
+    fetch("xing-xin-shen-tone.env")
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((text) => {
+        if (!text) return
+        const merged = { ...parseEnvText(text), ...toneFromQuery() }
+        applyToneVars(merged)
+      })
+      .catch(() => {})
+  }
+
+  // driven=1：由外部按视频时间调用 stepFrames，避免截帧快慢改变动作
+  if (query.get("driven") === "1") {
+    paint();
+    window.stepFrames = (n) => {
+      const count = Math.max(0, n | 0);
+      for (let i = 0; i < count; i++) tick();
+    };
+  } else {
+    (function loop() {
+      tick();
+      requestAnimationFrame(loop);
+    })();
+  }
 })();

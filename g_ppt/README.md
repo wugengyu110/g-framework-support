@@ -42,7 +42,9 @@ docker compose up --build
 | POST /api/audio/concat | 短语音拼接（工具） |
 | POST /api/render/slide | 渲 PNG/MP4 |
 | POST /api/render/show | 同步时间轴成片（可旁白/字幕/BGM/`keep_video_audio`） |
+| POST /api/render/mindmap | 思维导图画布按时间轴出 mp4 / 静帧 |
 | POST /api/jobs/render-show | 异步提交成片（立刻返回 job_id） |
+| POST /api/jobs/render-mindmap | 异步提交导图成片 |
 | GET /api/jobs/:id | 查询异步任务状态 |
 
 ```bash
@@ -115,6 +117,10 @@ g_ppt.render_show([
     # 同页多图：{"kind": "image", "srcs": [photo["src"], photo2["src"]], "duration_sec": 4}
     {"kind": "video", "src": clip["src"], "trim_end_sec": 8},
 ], out="show.mp4", presenter={"src": "presenter/talking.mp4"})  # 可选：右下角圆形解说头像（封面页不叠）
+
+# 思维导图播放：本地时间轴 JSON（canvas 路径相对该文件）
+g_ppt.render_mindmap("书名/播放/第03章.json", vault=".", out="chapter.mp4")
+# g_ppt.render_mindmap("书名/播放/第03章.json", stills=[0, 2.8])
 
 # 长任务：异步提交 + 轮询（不断线）
 job = g_ppt.submit_render_show([...], presenter={"src": "presenter/talking.mp4"})

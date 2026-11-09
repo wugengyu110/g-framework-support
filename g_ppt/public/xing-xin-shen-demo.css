@@ -271,3 +271,82 @@ html.embed #stage {
   height: 100%;
   box-shadow: none;
 }
+
+/* 视频背景：圆形按长边铺满 16:9，裁掉上下，不拉成椭圆 */
+html.embed.fit-cover,
+html.embed.fit-cover body {
+  background: var(--page-bg);
+}
+
+html.embed.fit-cover .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+html.embed.fit-cover #stage {
+  width: max(100vw, 100vh);
+  height: max(100vw, 100vh);
+  flex: 0 0 auto;
+}
+
+/* 视频背景：圆标高度贴齐画面，保持正圆，不裁上下 */
+html.embed.fit-height,
+html.embed.fit-height body {
+  background: var(--page-bg);
+}
+
+html.embed.fit-height .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* viewBox 400，圆直径 376。舞台放大后圆的高度正好等于画面高度，圆外空白被裁掉 */
+html.embed.fit-height #stage {
+  width: calc(100vh * 400 / 376);
+  height: calc(100vh * 400 / 376);
+  flex: 0 0 auto;
+}
+
+/* 成片背景：浅色水印，压在导图后面、不抢正文；透明度默认值见 xing-xin-shen-tone.env */
+html.embed.tone-faint {
+  --arena-grad-highlight: #edf8ff;
+  --arena-grad-inner: #d0ebfa;
+  --arena-grad-outer: #b5ddf5;
+  --arena-edge-stroke: rgba(120, 175, 215, 0.55);
+  --arena-edge-stroke-width: 1.5;
+  --line-opacity: 0.62;
+  --ball-disk-opacity: 0.78;
+  --ball-shadow-opacity: 0.08;
+  --ball-0-text: rgba(133, 92, 20, 0.58);
+  --ball-1-text: rgba(151, 24, 47, 0.56);
+  --ball-2-text: rgba(14, 91, 76, 0.56);
+  --stage-opacity: 0.9;
+  --arena-vignette-opacity: 0;
+  --arena-watermark-fill: rgba(150, 195, 225, 0.72);
+}
+
+html.embed.tone-faint .arena-vignette {
+  opacity: var(--arena-vignette-opacity);
+}
+
+html.embed.tone-faint .arena-watermark {
+  fill: var(--arena-watermark-fill);
+  filter: none;
+  font-weight: 650;
+}
+
+html.embed.tone-faint #stage {
+  opacity: var(--stage-opacity);
+}
+
+/* 成片：iframe 内不铺浅蓝底，透出外层画面 */
+html.embed.tone-faint,
+html.embed.tone-faint body,
+html.embed.tone-faint.fit-height,
+html.embed.tone-faint.fit-height body {
+  background: transparent;
+}

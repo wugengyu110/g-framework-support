@@ -415,6 +415,162 @@ def wait_job(
         time.sleep(poll_sec)
 
 
+def _mindmap_body_from_path(
+    timeline: str | Path,
+    *,
+    vault: str | Path | None,
+    stills: list[float] | None,
+    dynamic_bg: bool | None,
+    filename: str | None,
+) -> dict[str, Any]:
+    timeline_path = Path(timeline).expanduser().resolve()
+    spec = json.loads(timeline_path.read_text(encoding="utf-8"))
+    canvas_path = (timeline_path.parent / spec["canvas"]).resolve()
+    canvas = json.loads(canvas_path.read_text(encoding="utf-8"))
+    if vault:
+        vault_root = Path(vault).expanduser().resolve()
+    elif len(timeline_path.parents) > 2:
+        vault_root = timeline_path.parents[2]
+    else:
+        vault_root = timeline_path.parent
+    files: dict[str, str] = {}
+    if api_base():
+        suffixes = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+        for node in canvas.get("nodes") or []:
+            if node.get("type") != "file":
+                continue
+            rel = str(node.get("file") or "").strip()
+            src = (vault_root / rel).resolve() if rel else None
+            if src and src.is_file() and src.suffix.lower() in suffixes:
+                uploaded = upload_asset(src)
+                files[rel] = str(uploaded["src"])
+    body: dict[str, Any] = {
+        "canvas": canvas,
+        "shots": spec.get("shots") or [],
+    }
+    for key in ("width", "height", "fps", "padding", "hold_end"):
+        if spec.get(key) is not None:
+            body[key] = spec[key]
+    if files:
+        body["files"] = files
+    if vault:
+        body["vault"] = str(vault_root)
+    if stills:
+        body["stills"] = stills
+    if dynamic_bg is not None:
+        body["dynamic_bg"] = dynamic_bg
+    if filename:
+        body["filename"] = filename
+    return body
+
+
+def render_mindmap(
+    timeline: str | Path | dict[str, Any],
+    *,
+    canvas: dict[str, Any] | None = None,
+    out: str | None = None,
+    stills: list[float] | None = None,
+    dynamic_bg: bool | None = None,
+    vault: str | Path | None = None,
+    filename: str | None = None,
+) -> dict[str, Any]:
+    """
+    按时间轴把 Obsidian 画布导出为 mp4（或 stills 静帧）。
+    timeline 为播放 JSON 路径时，画布路径相对该文件解析。
+    无 G_PPT_API_URL 时走本地 CLI。
+    """
+    if isinstance(timeline, dict):
+        body = dict(timeline)
+        if canvas is not None:
+            body["canvas"] = canvas
+        if stills:
+            body["stills"] = stills
+        if dynamic_bg is not None:
+            body["dynamic_bg"] = dynamic_bg
+        if filename:
+            body["filename"] = filename
+        if vault:
+            body["vault"] = str(Path(vault).expanduser().resolve())
+    elif api_base():
+        body = _mindmap_body_from_path(
+            timeline,
+            vault=vault,
+            stills=stills,
+            dynamic_bg=dynamic_bg,
+            filename=filename or (Path(out).name if out else None),
+        )
+    else:
+        args = ["render-mindmap", "--timeline", str(Path(timeline).expanduser().resolve())]
+        if out:
+            args.extend(["--out", str(Path(out).expanduser().resolve())])
+        if stills:
+            args.extend(["--stills", ",".join(str(x) for x in stills)])
+        if dynamic_bg is not None:
+            args.extend(["--dynamic-bg", "true" if dynamic_bg else "false"])
+        if vault:
+            args.extend(["--vault", str(Path(vault).expanduser().resolve())])
+        result = run_cli(args)
+        if not isinstance(result, dict) or not result.get("ok"):
+            raise GPptError(f"render_mindmap failed: {result}")
+        return result
+
+    if not api_base():
+        raise GPptError("dict timeline requires G_PPT_API_URL or a timeline file path")
+    result = _http_json("POST", "/api/render/mindmap", body=body)
+    if not result.get("ok"):
+        raise GPptError(f"render_mindmap failed: {result}")
+    if out and result.get("format") == "png" and result.get("paths"):
+        dest = Path(out)
+        dest.mkdir(parents=True, exist_ok=True)
+        local = [
+            str(_http_download(Path(str(p)).name, dest / f"frame_{i:04d}.png"))
+            for i, p in enumerate(result["paths"])
+        ]
+        result = {**result, "paths": local, "path": local[0]}
+    elif out and result.get("path"):
+        result = {
+            **result,
+            "path": str(_http_download(Path(str(result["path"])).name, Path(out))),
+        }
+    return dict(result)
+
+
+def submit_render_mindmap(
+    timeline: str | Path | dict[str, Any],
+    *,
+    canvas: dict[str, Any] | None = None,
+    stills: list[float] | None = None,
+    dynamic_bg: bool | None = None,
+    vault: str | Path | None = None,
+    filename: str | None = None,
+) -> dict[str, Any]:
+    """异步提交导图成片，立刻返回 { job_id, status }。仅 HTTP 模式。"""
+    if not api_base():
+        raise GPptError("submit_render_mindmap requires G_PPT_API_URL")
+    if isinstance(timeline, dict):
+        body = dict(timeline)
+        if canvas is not None:
+            body["canvas"] = canvas
+        if stills:
+            body["stills"] = stills
+        if dynamic_bg is not None:
+            body["dynamic_bg"] = dynamic_bg
+        if filename:
+            body["filename"] = filename
+    else:
+        body = _mindmap_body_from_path(
+            timeline,
+            vault=vault,
+            stills=stills,
+            dynamic_bg=dynamic_bg,
+            filename=filename,
+        )
+    result = _http_json("POST", "/api/jobs/render-mindmap", body=body)
+    if not result.get("ok"):
+        raise GPptError(f"submit_render_mindmap failed: {result}")
+    return dict(result)
+
+
 def open_preview(
     *,
     pack: str | None = None,

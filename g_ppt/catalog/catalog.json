@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-07T07:09:47.274Z",
+  "generatedAt": "2026-11-09T08:26:24.010Z",
   "packs": [
     {
       "id": "default",
@@ -31,6 +31,12 @@
         "休身"
       ],
       "order": 5,
+      "when": "文首大标题 / 收束封面",
+      "roles": [
+        "hook",
+        "open",
+        "close"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -102,6 +108,12 @@
         "概念"
       ],
       "order": 20,
+      "when": "概念/要点/示例",
+      "roles": [
+        "concept",
+        "example",
+        "summary"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -170,6 +182,10 @@
         "差异"
       ],
       "order": 30,
+      "when": "两边对照（A vs B、优缺点）",
+      "roles": [
+        "compare"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -315,6 +331,10 @@
         "方法"
       ],
       "order": 40,
+      "when": "线性步骤（1. 2. 3.）",
+      "roles": [
+        "steps"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -421,6 +441,10 @@
         "高亮"
       ],
       "order": 50,
+      "when": "可演示代码围栏；无代码则改 bullets",
+      "roles": [
+        "code"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -498,6 +522,10 @@
         "饼图"
       ],
       "order": 55,
+      "when": "可比数字/占比/趋势；无真实数字则改 bullets",
+      "roles": [
+        "chart"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -626,7 +654,7 @@
       "pack": "default",
       "type": "math",
       "name": "数学公式",
-      "description": "公式函数：title + formula（LaTeX 正文，勿包 $$）+ note?；适合定理/方程/推导（多行用 \\begin{aligned}）；内容须来自口播/文档，demo 勿照抄",
+      "description": "公式函数：title + formula（LaTeX 正文，勿包 $$）+ note（白话含义，配合文字，勿让公式独占整页）；多行推导用 \\begin{aligned}；内容须来自口播/文档，demo 勿照抄",
       "tags": [
         "公式",
         "数学",
@@ -635,6 +663,10 @@
         "方程"
       ],
       "order": 55,
+      "when": "公式/方程/定理（$...$ / $$...$$ / \\[ \\] / 【公式n】）。公式必须上画面、与讲解同屏；即使 role 不是 math 也优先本 type。无 LaTeX 则改 bullets。不要让公式独占整页。",
+      "roles": [
+        "math"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -702,6 +734,10 @@
         "Canvas"
       ],
       "order": 56,
+      "when": "概念/模块关系网（非线性步骤）；线性步骤仍用 process",
+      "roles": [
+        "canvas"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -907,6 +943,12 @@
         "开场"
       ],
       "order": 10,
+      "when": "文首大标题 / 收束封面",
+      "roles": [
+        "hook",
+        "open",
+        "close"
+      ],
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -958,5 +1000,176 @@
         }
       ]
     }
-  ]
+  ],
+  "layout_rules": {
+    "types": [
+      {
+        "type": "bullets",
+        "when": "概念/要点/示例",
+        "roles": [
+          "concept",
+          "example",
+          "summary"
+        ],
+        "shape": "bullets(section?, title, bullets[1–6])",
+        "template_ids": [
+          "bullets_focus_v1"
+        ]
+      },
+      {
+        "type": "canvas",
+        "when": "概念/模块关系网（非线性步骤）；线性步骤仍用 process",
+        "roles": [
+          "canvas"
+        ],
+        "shape": "canvas(section?, title, nodes[{id, label, note?}][2–8], edges[{from, to, label?}][≤12], note?)",
+        "template_ids": [
+          "canvas_map_v1"
+        ]
+      },
+      {
+        "type": "chart",
+        "when": "可比数字/占比/趋势；无真实数字则改 bullets",
+        "roles": [
+          "chart"
+        ],
+        "shape": "chart(section?, title, chart_type, unit?, items[{label, value}][2–8], note?)",
+        "template_ids": [
+          "chart_simple_v1"
+        ]
+      },
+      {
+        "type": "code",
+        "when": "可演示代码围栏；无代码则改 bullets",
+        "roles": [
+          "code"
+        ],
+        "shape": "code(section?, title, language, code, note?)",
+        "template_ids": [
+          "code_spotlight_v1"
+        ]
+      },
+      {
+        "type": "compare",
+        "when": "两边对照（A vs B、优缺点）",
+        "roles": [
+          "compare"
+        ],
+        "shape": "compare(section?, title, left{label, bullets[1–4]}, right{label, bullets[1–4]})",
+        "template_ids": [
+          "compare_two_col_v1"
+        ]
+      },
+      {
+        "type": "math",
+        "when": "公式/方程/定理（$...$ / $$...$$ / \\[ \\] / 【公式n】）。公式必须上画面、与讲解同屏；即使 role 不是 math 也优先本 type。无 LaTeX 则改 bullets。不要让公式独占整页。",
+        "roles": [
+          "math"
+        ],
+        "shape": "math(section?, title, formula, note?)",
+        "template_ids": [
+          "math_formula_v1"
+        ]
+      },
+      {
+        "type": "process",
+        "when": "线性步骤（1. 2. 3.）",
+        "roles": [
+          "steps"
+        ],
+        "shape": "process(section?, title, steps[{title, desc}][2–5])",
+        "template_ids": [
+          "process_steps_v1"
+        ]
+      },
+      {
+        "type": "title",
+        "when": "文首大标题 / 收束封面",
+        "roles": [
+          "hook",
+          "open",
+          "close"
+        ],
+        "shape": "title(badge?, title, subtitle?, meta?, mark_src?)",
+        "template_ids": [
+          "title_mark_split_v1",
+          "product_launch_title_v1"
+        ]
+      }
+    ],
+    "role_to_types": {
+      "hook": [
+        "title"
+      ],
+      "open": [
+        "title"
+      ],
+      "close": [
+        "title"
+      ],
+      "concept": [
+        "bullets"
+      ],
+      "example": [
+        "bullets"
+      ],
+      "summary": [
+        "bullets",
+        "title"
+      ],
+      "compare": [
+        "compare"
+      ],
+      "steps": [
+        "process"
+      ],
+      "code": [
+        "code",
+        "bullets"
+      ],
+      "chart": [
+        "chart",
+        "bullets"
+      ],
+      "math": [
+        "math"
+      ],
+      "canvas": [
+        "canvas",
+        "bullets"
+      ]
+    },
+    "valid_roles": [
+      "hook",
+      "open",
+      "close",
+      "concept",
+      "example",
+      "summary",
+      "compare",
+      "steps",
+      "code",
+      "chart",
+      "math",
+      "canvas",
+      "title",
+      "bullets",
+      "process"
+    ],
+    "structural_roles": [
+      "hook",
+      "open",
+      "close",
+      "concept",
+      "example",
+      "summary"
+    ],
+    "prompt": {
+      "type_rules": "- bullets：概念/要点/示例。roles: concept, example, summary\n- canvas：概念/模块关系网（非线性步骤）；线性步骤仍用 process。roles: canvas\n- chart：可比数字/占比/趋势；无真实数字则改 bullets。roles: chart\n- code：可演示代码围栏；无代码则改 bullets。roles: code\n- compare：两边对照（A vs B、优缺点）。roles: compare\n- math：公式/方程/定理（$...$ / $$...$$ / \\[ \\] / 【公式n】）。公式必须上画面、与讲解同屏；即使 role 不是 math 也优先本 type。无 LaTeX 则改 bullets。不要让公式独占整页。。roles: math\n- process：线性步骤（1. 2. 3.）。roles: steps\n- title：文首大标题 / 收束封面。roles: hook, open, close",
+      "type_shapes": "字段名以各模板 inputs 为准；下列为该 type 常见形状，demo 禁止照抄：\n- bullets(section?, title, bullets[1–6])\n- canvas(section?, title, nodes[{id, label, note?}][2–8], edges[{from, to, label?}][≤12], note?)\n- chart(section?, title, chart_type, unit?, items[{label, value}][2–8], note?)\n- code(section?, title, language, code, note?)\n- compare(section?, title, left{label, bullets[1–4]}, right{label, bullets[1–4]})\n- math(section?, title, formula, note?)\n- process(section?, title, steps[{title, desc}][2–5])\n- title(badge?, title, subtitle?, meta?, mark_src?)",
+      "role_map": "- hook / open / close → title\n- concept / example → bullets\n- summary → bullets, title\n- compare → compare\n- steps → process\n- code → code, bullets\n- math → math\n- chart → chart, bullets\n- canvas → canvas, bullets",
+      "valid_roles": "hook|open|concept|compare|steps|code|math|chart|canvas|example|summary|close|bullets|process|title",
+      "type_when": "- bullets：概念/要点/示例\n- canvas：概念/模块关系网（非线性步骤）；线性步骤仍用 process\n- chart：可比数字/占比/趋势；无真实数字则改 bullets\n- code：可演示代码围栏；无代码则改 bullets\n- compare：两边对照（A vs B、优缺点）\n- math：公式/方程/定理（$...$ / $$...$$ / \\[ \\] / 【公式n】）。公式必须上画面、与讲解同屏；即使 role 不是 math 也优先本 type。无 LaTeX 则改 bullets。不要让公式独占整页。\n- process：线性步骤（1. 2. 3.）\n- title：文首大标题 / 收束封面"
+    }
+  }
 }
