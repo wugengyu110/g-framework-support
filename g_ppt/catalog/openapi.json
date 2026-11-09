@@ -1088,6 +1088,58 @@
           "vault": {
             "type": "string",
             "description": "插图相对路径的根目录（本机渲染时用）"
+          },
+          "audio_src": {
+            "type": "string",
+            "description": "成片旁白 asset:<id>；有则 mp4 混入 AAC，时长以音频为准",
+            "example": "asset:narration.mp3"
+          },
+          "subtitle_src": {
+            "type": "string",
+            "description": "成片绝对时间轴 SRT（asset:<id>）；优先于 cues",
+            "example": "asset:full.srt"
+          },
+          "burn_in": {
+            "type": "boolean",
+            "description": "true 硬烧字幕；默认 false（sidecar .srt + 软挂 mov_text）",
+            "example": false
+          },
+          "bgm_src": {
+            "type": "string",
+            "description": "成片级循环背景音乐",
+            "example": "asset:bgm.mp3"
+          },
+          "bgm_volume": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "BGM 相对音量 0–1，默认 0.25",
+            "example": 0.25
+          },
+          "cues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start",
+                "end",
+                "text"
+              ]
+            },
+            "description": "成片绝对时间字幕 cue（秒）"
           }
         },
         "required": [
@@ -1811,7 +1863,7 @@
           "render"
         ],
         "summary": "思维导图画布按时间轴出片",
-        "description": "读 Obsidian canvas 节点坐标，移动 16:9/自定义镜头并导出 mp4。传 stills 时只出静帧。长片请用 POST /api/jobs/render-mindmap。",
+        "description": "读 Obsidian canvas 节点坐标，移动 16:9/自定义镜头并导出 mp4；可传 audio_src（及 bgm/subtitle）混入旁白。传 stills 时只出静帧。长片请用 POST /api/jobs/render-mindmap。",
         "requestBody": {
           "required": true,
           "content": {

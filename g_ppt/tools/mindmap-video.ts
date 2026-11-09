@@ -18,7 +18,9 @@ import { tmpdir } from 'node:os'
 import { dirname, extname, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import {
+  type AbsoluteCue,
   frontendRoot,
+  muxNarrationOntoVideo,
   outputDir,
   resolveMediaSrc,
   runScreenshotWorker,
@@ -127,6 +129,14 @@ export type RenderMindmapInput = {
   files?: Record<string, string>
   /** 插图相对路径的根目录（read 仓库根） */
   vault?: string
+  /** 旁白 asset:<id>；有则成片混入 AAC 音轨（时长以音频为准） */
+  audio_src?: string
+  subtitle_src?: string
+  burn_in?: boolean
+  bgm_src?: string
+  bgm_volume?: number
+  /** 成片绝对时间轴字幕 cue（秒） */
+  cues?: AbsoluteCue[]
   onProgress?: (progress: { frame: number; total: number }) => void
 }
 
@@ -773,12 +783,33 @@ export async function apiRenderMindmap(
         }
       }
       const dest = resolve(destRoot, `${stem}.mp4`)
-      await encodeJpg(framesDir, fps, dest)
+      const silentMp4 = resolve(work, 'silent.mp4')
+      await encodeJpg(framesDir, fps, silentMp4)
+      const audioSrc = input.audio_src?.trim()
+      let totalSec = duration
+      if (audioSrc) {
+        const muxed = await muxNarrationOntoVideo(
+          silentMp4,
+          dest,
+          {
+            audio_src: audioSrc,
+            bgm_src: input.bgm_src,
+            bgm_volume: input.bgm_volume,
+            subtitle_src: input.subtitle_src,
+            cues: input.cues,
+            burn_in: input.burn_in,
+          },
+          work,
+        )
+        totalSec = muxed.total_sec
+      } else {
+        copyFileSync(silentMp4, dest)
+      }
       return {
         ok: true,
         format: 'mp4',
         path: dest,
-        total_sec: duration,
+        total_sec: totalSec,
         frames: times.length,
         width,
         height,

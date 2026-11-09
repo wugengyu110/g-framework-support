@@ -703,6 +703,105 @@ async function mixNarrationWithOriginal(
   ])
 }
 
+export type AbsoluteCue = { start: number; end: number; text: string }
+
+export type NarrationMuxOptions = {
+  audio_src: string
+  bgm_src?: string
+  bgm_volume?: number
+  subtitle_src?: string
+  cues?: AbsoluteCue[]
+  burn_in?: boolean
+}
+
+function buildSrtFromAbsoluteCues(cues: AbsoluteCue[]): string | null {
+  const blocks: string[] = []
+  let idx = 1
+  for (const cue of cues) {
+    const start = Number(cue.start)
+    const end = Number(cue.end)
+    const text = String(cue.text ?? '').trim()
+    if (!(end > start) || !text) continue
+    blocks.push(
+      `${idx}\n${formatSrtTimestamp(start)} --> ${formatSrtTimestamp(end)}\n${text}\n`,
+    )
+    idx++
+  }
+  return blocks.length ? blocks.join('\n') + '\n' : null
+}
+
+/**
+ * 将旁白（与可选 BGM/字幕）复用到 show 同款流程：静音成片 → AAC 旁白 → 可选 BGM → 软挂/硬烧字幕。
+ * 时长以旁白为准：画面短于旁白则循环补足；长于旁白则 -shortest 裁到旁白长度。
+ */
+export async function muxNarrationOntoVideo(
+  silentVideoPath: string,
+  outPath: string,
+  options: NarrationMuxOptions,
+  workDir: string,
+): Promise<{ total_sec: number; subtitle_path?: string }> {
+  const audioPath = resolveMediaSrc(options.audio_src.trim())
+  const audioDur = await probeDurationSec(audioPath)
+  const videoDur = await probeDurationSec(silentVideoPath)
+  const targetDur = audioDur
+
+  let videoForMux = silentVideoPath
+  if (videoDur + 0.05 < targetDur) {
+    const padded = resolve(workDir, 'video_padded.mp4')
+    await fitClipDuration(silentVideoPath, padded, targetDur, videoDur)
+    videoForMux = padded
+  }
+
+  const withNarr = resolve(workDir, 'with_narration.mp4')
+  await replaceAudioTrack(videoForMux, audioPath, withNarr, targetDur)
+  let current = withNarr
+
+  const bgmSrc = options.bgm_src?.trim()
+  if (bgmSrc) {
+    const withBgm = resolve(workDir, 'with_bgm.mp4')
+    const vol =
+      typeof options.bgm_volume === 'number' && Number.isFinite(options.bgm_volume)
+        ? options.bgm_volume
+        : 0.25
+    await mixBgmTrack(current, resolveMediaSrc(bgmSrc), withBgm, targetDur, vol)
+    current = withBgm
+  }
+
+  mkdirSync(dirname(outPath), { recursive: true })
+  copyFileSync(current, outPath)
+
+  let subtitle_path: string | undefined
+  let srtBody: string | null = null
+  if (options.subtitle_src?.trim()) {
+    srtBody = readFileSync(resolveMediaSrc(options.subtitle_src.trim()), 'utf8')
+  } else if (options.cues?.length) {
+    srtBody = buildSrtFromAbsoluteCues(options.cues)
+  }
+
+  if (srtBody) {
+    subtitle_path = outPath.replace(/\.mp4$/i, '.srt')
+    writeFileSync(subtitle_path, srtBody)
+    const staged = resolve(workDir, 'with_subs.mp4')
+    try {
+      if (options.burn_in) {
+        await burnSubtitles(outPath, subtitle_path, staged)
+      } else {
+        await muxSoftSubtitles(outPath, subtitle_path, staged)
+      }
+      try {
+        unlinkSync(outPath)
+        renameSync(staged, outPath)
+      } catch {
+        copyFileSync(staged, outPath)
+      }
+    } catch {
+      // 软挂/硬烧失败时仍保留画面 + sidecar .srt
+    }
+  }
+
+  return { total_sec: targetDur, subtitle_path }
+}
+
 /**
  * 成片混入循环 BGM。
  * volume：0–1（相对旁白/主音轨）；主片无音轨时仅用 BGM。

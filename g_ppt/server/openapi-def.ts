@@ -346,7 +346,7 @@ export function buildOpenApiApp() {
       tags: ['render'],
       summary: '思维导图画布按时间轴出片',
       description:
-        '读 Obsidian canvas 节点坐标，移动 16:9/自定义镜头并导出 mp4。传 stills 时只出静帧。长片请用 POST /api/jobs/render-mindmap。',
+        '读 Obsidian canvas 节点坐标，移动 16:9/自定义镜头并导出 mp4；可传 audio_src（及 bgm/subtitle）混入旁白。传 stills 时只出静帧。长片请用 POST /api/jobs/render-mindmap。',
       request: {
         body: {
           required: true,

@@ -454,6 +454,36 @@ export const RenderMindmapBodySchema = z
     vault: z.string().optional().openapi({
       description: '插图相对路径的根目录（本机渲染时用）',
     }),
+    audio_src: z.string().optional().openapi({
+      description: '成片旁白 asset:<id>；有则 mp4 混入 AAC，时长以音频为准',
+      example: 'asset:narration.mp3',
+    }),
+    subtitle_src: z.string().optional().openapi({
+      description: '成片绝对时间轴 SRT（asset:<id>）；优先于 cues',
+      example: 'asset:full.srt',
+    }),
+    burn_in: z.boolean().optional().openapi({
+      description: 'true 硬烧字幕；默认 false（sidecar .srt + 软挂 mov_text）',
+      example: false,
+    }),
+    bgm_src: z.string().optional().openapi({
+      description: '成片级循环背景音乐',
+      example: 'asset:bgm.mp3',
+    }),
+    bgm_volume: z.number().min(0).max(1).optional().openapi({
+      description: 'BGM 相对音量 0–1，默认 0.25',
+      example: 0.25,
+    }),
+    cues: z
+      .array(
+        z.object({
+          start: z.number().nonnegative(),
+          end: z.number().positive(),
+          text: z.string(),
+        }),
+      )
+      .optional()
+      .openapi({ description: '成片绝对时间字幕 cue（秒）' }),
   })
   .openapi('RenderMindmapBody')
 
