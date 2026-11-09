@@ -42,7 +42,10 @@ type WorkerResult = {
   durationSec?: number
 }
 
-function runScreenshotWorker(job: Record<string, unknown>): Promise<WorkerResult> {
+export function runScreenshotWorker(
+  job: Record<string, unknown>,
+  hooks?: { onStderr?: (line: string) => void },
+): Promise<WorkerResult> {
   const worker = resolve(root, 'tools/screenshot-worker.mjs')
   return new Promise((resolvePromise, reject) => {
     const child = spawn(process.execPath, [worker], {
@@ -52,8 +55,16 @@ function runScreenshotWorker(job: Record<string, unknown>): Promise<WorkerResult
     })
     const chunks: Buffer[] = []
     const errChunks: Buffer[] = []
+    let errLine = ''
     child.stdout.on('data', (c) => chunks.push(c))
-    child.stderr.on('data', (c) => errChunks.push(c))
+    child.stderr.on('data', (c: Buffer) => {
+      errChunks.push(c)
+      if (!hooks?.onStderr) return
+      errLine += c.toString('utf8')
+      const lines = errLine.split('\n')
+      errLine = lines.pop() ?? ''
+      for (const line of lines) hooks.onStderr?.(line)
+    })
     child.on('error', reject)
     child.on('close', (code) => {
       const out = Buffer.concat(chunks).toString('utf8').trim()
@@ -128,7 +139,7 @@ function createSemaphore(limit: number) {
 
 const renderGate = createSemaphore(getRenderConcurrency())
 
-async function withRenderGate<T>(fn: () => Promise<T>): Promise<T> {
+export async function withRenderGate<T>(fn: () => Promise<T>): Promise<T> {
   await renderGate.acquire()
   try {
     return await fn()

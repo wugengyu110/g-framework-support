@@ -19,6 +19,8 @@ import {
   JobRecordSchema,
   PackSchema,
   RefreshQuerySchema,
+  RenderMindmapBodySchema,
+  RenderMindmapResultSchema,
   RenderShowBodySchema,
   RenderShowResultSchema,
   RenderSlideBodySchema,
@@ -340,6 +342,65 @@ export function buildOpenApiApp() {
   app.openapi(
     createRoute({
       method: 'post',
+      path: '/api/render/mindmap',
+      tags: ['render'],
+      summary: '思维导图画布按时间轴出片',
+      description:
+        '读 Obsidian canvas 节点坐标，移动 16:9/自定义镜头并导出 mp4。传 stills 时只出静帧。长片请用 POST /api/jobs/render-mindmap。',
+      request: {
+        body: {
+          required: true,
+          content: { 'application/json': { schema: RenderMindmapBodySchema } },
+        },
+      },
+      responses: {
+        200: {
+          description: 'mindmap mp4 or stills',
+          content: {
+            'application/json': { schema: RenderMindmapResultSchema },
+          },
+        },
+        400: {
+          description: 'validation / render error',
+          content: { 'application/json': { schema: FailSchema } },
+        },
+      },
+    }),
+    stub as never,
+  )
+
+  app.openapi(
+    createRoute({
+      method: 'post',
+      path: '/api/jobs/render-mindmap',
+      tags: ['jobs'],
+      summary: '异步提交思维导图成片',
+      description: '请求体与 POST /api/render/mindmap 相同，立刻返回 job_id。',
+      request: {
+        body: {
+          required: true,
+          content: { 'application/json': { schema: RenderMindmapBodySchema } },
+        },
+      },
+      responses: {
+        200: {
+          description: 'queued',
+          content: {
+            'application/json': { schema: JobEnqueueResultSchema },
+          },
+        },
+        400: {
+          description: 'validation error',
+          content: { 'application/json': { schema: FailSchema } },
+        },
+      },
+    }),
+    stub as never,
+  )
+
+  app.openapi(
+    createRoute({
+      method: 'post',
       path: '/api/jobs/render-show',
       tags: ['jobs'],
       summary: '异步提交 show 成片任务',
@@ -407,7 +468,7 @@ export function getOpenApiDocument() {
       title: 'G-PPT API',
       version: '0.1.0',
       description:
-        '模板 catalog + 媒体资产 + 时间轴渲染（可叠旁白/字幕）。长成片用 POST /api/jobs/render-show 异步提交，再 GET /api/jobs/{id} 轮询。短语音拼接见 POST /api/audio/concat（工具）。',
+        '模板 catalog + 媒体资产 + 时间轴渲染（可叠旁白/字幕）+ 思维导图播放视频。长成片用 POST /api/jobs/render-show 或 /api/jobs/render-mindmap 异步提交，再 GET /api/jobs/{id} 轮询。',
     },
     tags: [
       { name: 'catalog', description: '模板 / 节目包契约' },

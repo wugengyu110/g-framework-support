@@ -3,7 +3,7 @@
   "info": {
     "title": "G-PPT API",
     "version": "0.1.0",
-    "description": "模板 catalog + 媒体资产 + 时间轴渲染（可叠旁白/字幕）。长成片用 POST /api/jobs/render-show 异步提交，再 GET /api/jobs/{id} 轮询。短语音拼接见 POST /api/audio/concat（工具）。"
+    "description": "模板 catalog + 媒体资产 + 时间轴渲染（可叠旁白/字幕）+ 思维导图播放视频。长成片用 POST /api/jobs/render-show 或 /api/jobs/render-mindmap 异步提交，再 GET /api/jobs/{id} 轮询。"
   },
   "tags": [
     {
@@ -177,6 +177,17 @@
               "$ref": "#/components/schemas/TemplateInputField"
             },
             "description": "字段摘要：必填 / 类型 / minItems / maxItems"
+          },
+          "when": {
+            "type": "string",
+            "description": "选版：何时用这个 type"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "哪些口播 role 优先用这个 type"
           }
         },
         "required": [
@@ -222,6 +233,109 @@
           "name",
           "required",
           "type"
+        ]
+      },
+      "LayoutRules": {
+        "type": "object",
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LayoutTypeRule"
+            }
+          },
+          "role_to_types": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "valid_roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "structural_roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prompt": {
+            "$ref": "#/components/schemas/LayoutRulesPrompt"
+          }
+        },
+        "required": [
+          "types",
+          "role_to_types",
+          "valid_roles",
+          "structural_roles",
+          "prompt"
+        ]
+      },
+      "LayoutTypeRule": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "when": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shape": {
+            "type": "string",
+            "description": "该 type 常见调用形状，如 title(badge?, title)"
+          },
+          "template_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "when",
+          "roles",
+          "shape",
+          "template_ids"
+        ]
+      },
+      "LayoutRulesPrompt": {
+        "type": "object",
+        "properties": {
+          "type_rules": {
+            "type": "string"
+          },
+          "type_shapes": {
+            "type": "string"
+          },
+          "role_map": {
+            "type": "string"
+          },
+          "valid_roles": {
+            "type": "string"
+          },
+          "type_when": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type_rules",
+          "type_shapes",
+          "role_map",
+          "valid_roles",
+          "type_when"
         ]
       },
       "CatalogRefreshResult": {
@@ -561,6 +675,23 @@
             "description": "true 硬烧字幕；默认 false（sidecar .srt + 软挂 mov_text）",
             "example": false
           },
+          "keep_video_audio": {
+            "type": "boolean",
+            "description": "有 scene.audio_src 时是否保留该段原片音轨并与旁白混音；默认 false（旁白替换原声）",
+            "example": false
+          },
+          "bgm_src": {
+            "type": "string",
+            "description": "成片级循环背景音乐：asset:<id> / assets 相对路径 / 绝对路径",
+            "example": "asset:1710000000_bgm.mp3"
+          },
+          "bgm_volume": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "BGM 相对音量 0–1，默认 0.25",
+            "example": 0.25
+          },
           "presenter": {
             "$ref": "#/components/schemas/PresenterOverlay"
           }
@@ -653,8 +784,20 @@
           },
           "src": {
             "type": "string",
-            "description": "asset:<id> / assets 内文件名 / 容器内绝对路径",
+            "description": "单图：asset:<id> / assets 内文件名 / 容器内绝对路径",
             "example": "asset:1710000000_photo.png"
+          },
+          "srcs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "description": "同页多图；引擎拼网格。与 src 二选一或同时给（优先 srcs）",
+            "example": [
+              "asset:a.png",
+              "asset:b.png"
+            ]
           },
           "duration_sec": {
             "type": "number",
@@ -699,8 +842,7 @@
           }
         },
         "required": [
-          "kind",
-          "src"
+          "kind"
         ]
       },
       "VideoScene": {
@@ -793,6 +935,252 @@
         ],
         "description": "右下角圆形人像画中画；短于主片则循环，长于主片则裁剪；type=title 封面时段不显示"
       },
+      "RenderMindmapResult": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp4",
+              "png"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total_sec": {
+            "type": "number"
+          },
+          "frames": {
+            "type": "number"
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "format",
+          "path",
+          "total_sec",
+          "frames",
+          "width",
+          "height"
+        ]
+      },
+      "RenderMindmapBody": {
+        "type": "object",
+        "properties": {
+          "canvas": {
+            "type": "object",
+            "properties": {
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MindmapNode"
+                },
+                "minItems": 1
+              },
+              "edges": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "fromNode": {
+                      "type": "string"
+                    },
+                    "toNode": {
+                      "type": "string"
+                    },
+                    "fromSide": {
+                      "type": "string"
+                    },
+                    "toSide": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "nodes"
+            ]
+          },
+          "shots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MindmapShot"
+            },
+            "minItems": 1
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 2560
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 1440
+          },
+          "fps": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 24
+          },
+          "padding": {
+            "type": "number",
+            "minimum": 0,
+            "example": 56
+          },
+          "hold_end": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1.6
+          },
+          "dynamic_bg": {
+            "type": "boolean",
+            "description": "是否嵌入行心身动态背景；省略则读 mindmap-board.env"
+          },
+          "board": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "stills": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0
+            },
+            "description": "只导出这些秒数的静帧；省略则出整段 mp4"
+          },
+          "filename": {
+            "type": "string",
+            "example": "第03章-标记.mp4"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "画布 file 相对路径 → asset:<id> 或绝对路径"
+          },
+          "vault": {
+            "type": "string",
+            "description": "插图相对路径的根目录（本机渲染时用）"
+          }
+        },
+        "required": [
+          "canvas",
+          "shots"
+        ]
+      },
+      "MindmapNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "frame_c0"
+          },
+          "type": {
+            "type": "string",
+            "example": "text"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "color": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "description": "type=file 时相对 vault 的图片路径"
+          }
+        },
+        "required": [
+          "id",
+          "x",
+          "y",
+          "width",
+          "height"
+        ]
+      },
+      "MindmapShot": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "number",
+            "minimum": 0,
+            "description": "到达并停住的秒数",
+            "example": 2.8
+          },
+          "focus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            ],
+            "description": "节点 id，或一组 id 的外接矩形"
+          },
+          "move": {
+            "type": "number",
+            "minimum": 0,
+            "description": "从上一镜移过来用的秒数；省略则整段间隔都在移动"
+          },
+          "padding": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "t",
+          "focus"
+        ]
+      },
       "JobEnqueueResult": {
         "type": "object",
         "properties": {
@@ -827,12 +1215,14 @@
           "scene": {
             "type": "number"
           },
+          "frame": {
+            "type": "number"
+          },
           "total": {
             "type": "number"
           }
         },
         "required": [
-          "scene",
           "total"
         ]
       },
@@ -841,6 +1231,12 @@
         "properties": {
           "path": {
             "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "timeline_path": {
             "type": "string"
@@ -853,13 +1249,20 @@
           },
           "scenes": {
             "type": "number"
+          },
+          "frames": {
+            "type": "number"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp4",
+              "png"
+            ]
           }
         },
         "required": [
-          "path",
-          "timeline_path",
-          "total_sec",
-          "scenes"
+          "path"
         ]
       },
       "JobRecord": {
@@ -871,7 +1274,8 @@
           "kind": {
             "type": "string",
             "enum": [
-              "render_show"
+              "render_show",
+              "render_mindmap"
             ]
           },
           "status": {
@@ -1129,6 +1533,54 @@
         }
       }
     },
+    "/api/layout-rules": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "选版规则（type.when / roles / 形状 / role→type）",
+        "description": "从当前 catalog 聚合。Agent / media 选版只读本接口，勿手写 type 清单。prompt.* 可直接注入 LLM。",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "description": "默认重建 catalog；传 false 读磁盘缓存",
+              "example": "true"
+            },
+            "required": false,
+            "description": "默认重建 catalog；传 false 读磁盘缓存",
+            "name": "refresh",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "layout rules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutRules"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/refresh": {
       "post": {
         "tags": [
@@ -1342,6 +1794,88 @@
           },
           "400": {
             "description": "validation / render error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/render/mindmap": {
+      "post": {
+        "tags": [
+          "render"
+        ],
+        "summary": "思维导图画布按时间轴出片",
+        "description": "读 Obsidian canvas 节点坐标，移动 16:9/自定义镜头并导出 mp4。传 stills 时只出静帧。长片请用 POST /api/jobs/render-mindmap。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderMindmapBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "mindmap mp4 or stills",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderMindmapResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation / render error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/render-mindmap": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "异步提交思维导图成片",
+        "description": "请求体与 POST /api/render/mindmap 相同，立刻返回 job_id。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderMindmapBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobEnqueueResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "validation error",
             "content": {
               "application/json": {
                 "schema": {

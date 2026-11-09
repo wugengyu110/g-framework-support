@@ -16,6 +16,7 @@ import { resolve } from 'node:path'
 import {
   AudioConcatBodySchema,
   AudioTempoBodySchema,
+  RenderMindmapBodySchema,
   RenderShowBodySchema,
   RenderSlideBodySchema,
 } from '../frontend/src/lib/api-body'
@@ -38,7 +39,8 @@ import {
   root,
   saveAsset,
 } from '../tools/engine'
-import { enqueueRenderShow, getJob, startJobWorkers } from '../tools/jobs'
+import { apiRenderMindmap } from '../tools/mindmap-video'
+import { enqueueRenderMindmap, enqueueRenderShow, getJob, startJobWorkers } from '../tools/jobs'
 
 const port = Number(process.env.PORT || process.env.G_PPT_PORT || 18800)
 if (!process.env.G_PPT_RENDER_BASE_URL) {
@@ -185,6 +187,41 @@ async function handleEnqueueRenderShow(c: {
 }
 
 app.post('/api/render/show', (c) => handleRenderShow(c))
+
+app.post('/api/render/mindmap', async (c) => {
+  try {
+    const parsed = RenderMindmapBodySchema.safeParse(await c.req.json())
+    if (!parsed.success) {
+      return c.json(
+        { ok: false as const, error: parsed.error.issues[0]?.message ?? 'invalid body' },
+        400,
+      )
+    }
+    return c.json(await apiRenderMindmap(parsed.data))
+  } catch (e) {
+    return c.json({ ok: false, error: String((e as Error).message) }, 400)
+  }
+})
+
+app.post('/api/jobs/render-mindmap', async (c) => {
+  try {
+    const parsed = RenderMindmapBodySchema.safeParse(await c.req.json())
+    if (!parsed.success) {
+      return c.json(
+        { ok: false as const, error: parsed.error.issues[0]?.message ?? 'invalid body' },
+        400,
+      )
+    }
+    const job = enqueueRenderMindmap(parsed.data)
+    return c.json({
+      ok: true as const,
+      job_id: job.id,
+      status: 'queued' as const,
+    })
+  } catch (e) {
+    return c.json({ ok: false, error: String((e as Error).message) }, 400)
+  }
+})
 
 app.post('/api/audio/concat', async (c) => {
   try {

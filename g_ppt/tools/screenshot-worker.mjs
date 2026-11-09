@@ -109,10 +109,98 @@ async function record(url, outVideo, durationSec) {
   return { path: outVideo, trimStartSec, durationSec: dur }
 }
 
+const PHYS_HZ = 60
+
+function reportFrame(i, total) {
+  process.stderr.write(`mindmap-frame ${i + 1} ${total}\n`)
+}
+
+/** 按时间轴对焦 Obsidian 画布并逐帧截图。stdin: mode=mindmap */
+async function grabMindmap(job) {
+  const {
+    url,
+    width,
+    height,
+    times,
+    cameras,
+    outDir,
+    suffix,
+    quality,
+    useDynamicBg,
+  } = job
+  if (!url) throw new Error('screenshot-worker: url required')
+  if (!Array.isArray(times) || !times.length) {
+    throw new Error('screenshot-worker: times required')
+  }
+  if (!Array.isArray(cameras) || cameras.length !== times.length) {
+    throw new Error('screenshot-worker: cameras length must match times')
+  }
+  const w = Number(width)
+  const h = Number(height)
+  if (!(w > 0) || !(h > 0)) throw new Error('screenshot-worker: width/height required')
+  mkdirSync(outDir, { recursive: true })
+  const ext = suffix === 'png' ? 'png' : 'jpeg'
+  const browser = await chromium.launch({ headless: true })
+  try {
+    const page = await browser.newPage({
+      viewport: { width: w, height: h },
+      deviceScaleFactor: 1,
+    })
+    page.setDefaultTimeout(120000)
+    await page.goto(url, { waitUntil: 'load' })
+    await page.waitForFunction(() => document.readyState === 'complete')
+    if (useDynamicBg) {
+      await page.waitForFunction(() => {
+        const frame = document.getElementById('bg')
+        const win = frame && frame.contentWindow
+        return !!(win && win.stepFrames)
+      })
+    }
+    await page.evaluate(() => document.fonts.ready)
+    await page.evaluate(
+      () =>
+        new Promise((resolveFrame) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolveFrame)),
+        ),
+    )
+    let stepped = 0
+    for (let i = 0; i < times.length; i++) {
+      const t = Number(times[i])
+      if (useDynamicBg) {
+        const target = Math.round(t * PHYS_HZ)
+        if (target > stepped) {
+          const steps = target - stepped
+          await page.evaluate((n) => {
+            document.getElementById('bg').contentWindow.stepFrames(n)
+          }, steps)
+          stepped = target
+        }
+      }
+      const cam = cameras[i]
+      await page.evaluate(({ cx, cy, z }) => {
+        window.setCamera(cx, cy, z)
+      }, cam)
+      const file = resolve(outDir, `frame_${String(i).padStart(4, '0')}.${suffix === 'png' ? 'png' : 'jpg'}`)
+      const shot = { path: file, type: ext }
+      if (ext === 'jpeg') shot.quality = Number(quality ?? 86)
+      await page.screenshot(shot)
+      reportFrame(i, times.length)
+    }
+  } finally {
+    await browser.close()
+  }
+  return outDir
+}
+
 async function main() {
   const raw = (await readStdin()).trim()
   if (!raw) throw new Error('screenshot-worker: empty stdin')
   const job = JSON.parse(raw)
+  if (job.mode === 'mindmap') {
+    const path = await grabMindmap(job)
+    process.stdout.write(JSON.stringify({ ok: true, path }) + '\n')
+    return
+  }
   const { url, outPng, outVideo, durationSec } = job
   if (!url) throw new Error('screenshot-worker: url required')
 

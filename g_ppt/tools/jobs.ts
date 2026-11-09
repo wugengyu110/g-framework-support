@@ -17,6 +17,7 @@ import {
   type PresenterOverlay,
   type Scene,
 } from './engine'
+import { apiRenderMindmap, type RenderMindmapInput } from './mindmap-video'
 
 export const jobsDir = resolve(root, 'jobs')
 
@@ -33,22 +34,29 @@ export type RenderShowJobRequest = {
   presenter?: PresenterOverlay
 }
 
+export type JobProgress = { scene?: number; frame?: number; total: number }
+
+export type JobResult = {
+  path: string
+  paths?: string[]
+  timeline_path?: string
+  subtitle_path?: string
+  total_sec?: number
+  scenes?: number
+  frames?: number
+  format?: 'mp4' | 'png'
+}
+
 export type JobRecord = {
   id: string
-  kind: 'render_show'
+  kind: 'render_show' | 'render_mindmap'
   status: JobStatus
   created_at: string
   started_at?: string
   finished_at?: string
-  request: RenderShowJobRequest
-  progress?: { scene: number; total: number } | null
-  result?: {
-    path: string
-    timeline_path: string
-    subtitle_path?: string
-    total_sec: number
-    scenes: number
-  }
+  request: RenderShowJobRequest | RenderMindmapInput
+  progress?: JobProgress | null
+  result?: JobResult
   error?: string
 }
 
@@ -91,23 +99,74 @@ async function nextQueuedId(): Promise<string> {
   }
 }
 
+function isShowRequest(
+  request: JobRecord['request'],
+): request is RenderShowJobRequest {
+  return Array.isArray((request as RenderShowJobRequest).scenes)
+}
+
 async function processJob(id: string) {
   const job = readJobFile(id)
   if (!job || job.status !== 'queued') return
+  const request = job.request
 
+  if (job.kind === 'render_show' && isShowRequest(request)) {
+    patchJob(id, {
+      status: 'running',
+      started_at: new Date().toISOString(),
+      error: undefined,
+      progress: { scene: 0, total: request.scenes.length },
+    })
+    try {
+      const result = await apiRenderShow({
+        ...request,
+        onProgress: (p) => {
+          try {
+            patchJob(id, { progress: p })
+          } catch {
+            /* ignore mid-flight write races */
+          }
+        },
+      })
+      patchJob(id, {
+        status: 'done',
+        finished_at: new Date().toISOString(),
+        progress: {
+          scene: request.scenes.length,
+          total: request.scenes.length,
+        },
+        result: {
+          path: result.path,
+          timeline_path: result.timeline_path,
+          subtitle_path: result.subtitle_path,
+          total_sec: result.total_sec,
+          scenes: result.scenes,
+          format: 'mp4',
+        },
+      })
+    } catch (e) {
+      patchJob(id, {
+        status: 'error',
+        finished_at: new Date().toISOString(),
+        error: String((e as Error)?.message || e),
+      })
+    }
+    return
+  }
+
+  const mindmap = request as RenderMindmapInput
   patchJob(id, {
     status: 'running',
     started_at: new Date().toISOString(),
     error: undefined,
-    progress: { scene: 0, total: job.request.scenes.length },
+    progress: { frame: 0, total: 1 },
   })
-
   try {
-    const result = await apiRenderShow({
-      ...job.request,
+    const result = await apiRenderMindmap({
+      ...mindmap,
       onProgress: (p) => {
         try {
-          patchJob(id, { progress: p })
+          patchJob(id, { progress: { frame: p.frame, total: p.total } })
         } catch {
           /* ignore mid-flight write races */
         }
@@ -116,16 +175,13 @@ async function processJob(id: string) {
     patchJob(id, {
       status: 'done',
       finished_at: new Date().toISOString(),
-      progress: {
-        scene: job.request.scenes.length,
-        total: job.request.scenes.length,
-      },
+      progress: { frame: result.frames, total: result.frames },
       result: {
         path: result.path,
-        timeline_path: result.timeline_path,
-        subtitle_path: result.subtitle_path,
+        paths: result.paths,
         total_sec: result.total_sec,
-        scenes: result.scenes,
+        frames: result.frames,
+        format: result.format,
       },
     })
   } catch (e) {
@@ -167,6 +223,26 @@ export function enqueueRenderShow(request: RenderShowJobRequest): JobRecord {
     created_at: new Date().toISOString(),
     request,
     progress: { scene: 0, total: request.scenes.length },
+  }
+  writeJob(job)
+  pending.push(id)
+  wake()
+  return job
+}
+
+export function enqueueRenderMindmap(request: RenderMindmapInput): JobRecord {
+  if (!request.canvas?.nodes?.length) throw new Error('canvas.nodes empty')
+  if (!request.shots?.length) throw new Error('shots empty')
+  const id = randomUUID()
+  const stored: RenderMindmapInput = { ...request }
+  delete stored.onProgress
+  const job: JobRecord = {
+    id,
+    kind: 'render_mindmap',
+    status: 'queued',
+    created_at: new Date().toISOString(),
+    request: stored,
+    progress: { frame: 0, total: 1 },
   }
   writeJob(job)
   pending.push(id)

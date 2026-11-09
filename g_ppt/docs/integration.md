@@ -17,8 +17,9 @@ Node Hono :18800
     ├─ /api/audio/tempo   整段音频 atempo 变速（口播语速用此，勿用 TTS speed）
     ├─ /api/jobs/*    异步成片（提交 + 轮询）
     ├─ /media/:id     已上传媒体
-    ├─ /api/render/*  渲 PNG / 同步时间轴合成 MP4
+    ├─ /api/render/*  渲 PNG / 同步时间轴合成 MP4 / 思维导图播放
     └─ tools/engine   Playwright + ffmpeg
+         tools/mindmap-video.ts  Obsidian canvas 镜头成片
 ```
 
 无 FastAPI：渲染与 API 同为 Node。人调试用 `/docs`，Agent 读 `/api/layout-rules`、`/api/templates` 或 `/openapi.json`。
@@ -39,6 +40,8 @@ Node Hono :18800
 | 接口 | 说明 |
 |------|------|
 | `POST /api/jobs/render-show` | 请求体同同步 show，立刻返回 `{ job_id, status: "queued" }` |
+| `POST /api/render/mindmap` | Obsidian `canvas` + `shots` 时间轴，同步出 mp4；`stills` 只出静帧 |
+| `POST /api/jobs/render-mindmap` | 请求体同同步 mindmap，立刻返回 `job_id` |
 | `GET /api/jobs/:id` | `queued` / `running` / `done` / `error`；`done` 时含 `result.path` 等 |
 
 状态落在 `jobs/<id>.json`；worker 与 API 同进程，并发受 `G_PPT_CONCURRENCY` 约束。进程重启时 `running` 标为 error，`queued` 会重新入队。

@@ -2,8 +2,8 @@
  * G-PPT CLI — 薄封装，逻辑在 engine.ts
  */
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import {
   apiConcatAudio,
   apiGetSchema,
@@ -16,6 +16,7 @@ import {
   root,
   type Scene,
 } from './engine'
+import { apiRenderMindmap, loadMindmapTimeline } from './mindmap-video'
 
 function printJson(data: unknown) {
   process.stdout.write(JSON.stringify(data, null, 2) + '\n')
@@ -183,6 +184,64 @@ async function main() {
       printJson(result)
       break
     }
+    case 'render-mindmap': {
+      const timelinePath = String(flags.timeline || positionals[0] || '')
+      if (!timelinePath) throw new Error('--timeline <播放.json> required')
+      const input = loadMindmapTimeline(
+        resolve(timelinePath),
+        flags.vault ? String(flags.vault) : undefined,
+      )
+      if (flags['dynamic-bg'] != null) {
+        if (flags['dynamic-bg'] === true) input.dynamic_bg = true
+        else {
+          const v = String(flags['dynamic-bg']).trim().toLowerCase()
+          input.dynamic_bg = !['0', 'false', 'no', 'off'].includes(v)
+        }
+      }
+      const stills = flags.stills
+        ? String(flags.stills)
+            .split(',')
+            .map((s) => Number(s.trim()))
+            .filter((n) => Number.isFinite(n))
+        : undefined
+      if (stills?.length) input.stills = stills
+      if (flags.out) input.filename = String(flags.out).split(/[/\\]/).pop()
+      input.onProgress = (p) => {
+        if (p.frame === 1 || p.frame === p.total || p.frame % 24 === 0) {
+          process.stderr.write(`mindmap ${p.frame}/${p.total}\n`)
+        }
+      }
+      const result = await apiRenderMindmap(input)
+      const timelineAbs = resolve(timelinePath)
+      if (result.format === 'png' && result.paths) {
+        const preview = flags['preview-dir']
+          ? resolve(String(flags['preview-dir']))
+          : resolve(dirname(timelineAbs), '_preview')
+        mkdirSync(preview, { recursive: true })
+        const copied = result.paths.map((src, i) => {
+          const dest = resolve(preview, `frame_${String(i).padStart(4, '0')}.png`)
+          copyFileSync(src, dest)
+          return dest
+        })
+        result.paths = copied
+        result.path = copied[0]
+      } else if (flags.out) {
+        const dest = resolve(String(flags.out))
+        if (result.path !== dest && existsSync(result.path)) {
+          mkdirSync(dirname(dest), { recursive: true })
+          copyFileSync(result.path, dest)
+          result.path = dest
+        }
+      } else {
+        const dest = timelineAbs.replace(/\.json$/i, '.mp4')
+        if (result.path !== dest && existsSync(result.path)) {
+          copyFileSync(result.path, dest)
+          result.path = dest
+        }
+      }
+      printJson(result)
+      break
+    }
     case 'audio-concat': {
       const sourcesPath = String(flags.sources || '')
       let sources: string[]
@@ -212,7 +271,7 @@ async function main() {
       break
     default:
       console.error(`Unknown or missing command: ${cmd ?? '(none)'}
-Commands: catalog | list-packs | list-templates | layout-rules | schema | render-slide | render-show | audio-concat | preview`)
+Commands: catalog | list-packs | list-templates | layout-rules | schema | render-slide | render-show | render-mindmap | audio-concat | preview`)
       process.exit(1)
   }
 }
