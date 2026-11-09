@@ -224,7 +224,7 @@ def speech():
             }
         ), 400
 
-    # 口播管线语速由 g_ppt atempo 处理；此处忽略 speed，保持与 CosyVoice/SoVITS 主路径一致
+    # 口播管线语速由 g_ppt atempo 处理；此处忽略 speed
     try:
         if voice.get("kind") == "cached" or voice.get("speaker_id"):
             audio = _http_bytes(

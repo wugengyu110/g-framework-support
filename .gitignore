@@ -56,22 +56,6 @@ __pycache__/
 **/*.tar
 **/*.tar.gz
 
-# --- vendor / upstream full trees（只保留 compose + shim + 小配置）---
-gpt-sovits/*
-!gpt-sovits/docker-compose.yaml
-!gpt-sovits/g_framework_tts_shim.py
-!gpt-sovits/voices/
-gpt-sovits/voices/*
-!gpt-sovits/voices/catalog.json
-!gpt-sovits/voices/README.md
-
-# cosyvoice：排除数据与杂项，保留编排与薄服务代码
-cosyvoice/gpt-sovits-data/
-cosyvoice/**/prompt.wav
-cosyvoice/测试.wav
-cosyvoice/docker-compose copy.yml
-cosyvoice/neosun100:cosyvoice:v3.4.0.md
-
 # vllm：只保留 compose
 vllm/*
 !vllm/docker-compose.ollama.yml

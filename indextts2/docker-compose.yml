@@ -34,7 +34,7 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              # GPT-SoVITS/CosyVoice 常用 "0"；本服务默认挂第二张卡
+              # 仅跑 IndexTTS2 时可改为 ["0"]；默认挂第二张卡
               device_ids: ["1"]
               capabilities: [gpu]
 

@@ -4,6 +4,8 @@ g-framework 外围支撑服务编排仓：Docker Compose、薄适配 shim、业�
 
 **只版本化「怎么启动 / 怎么适配」**；模型权重、合成产物、参考音色 wav、上传素材等资料类文件不入仓。
 
+**语音合成（TTS）**：本仓仅保留 **IndexTTS2**（`indextts2/`）。CosyVoice、GPT-SoVITS 等其它引擎已移出本仓。
+
 ## 目录
 
 | 路径 | 说明 |
@@ -12,9 +14,7 @@ g-framework 外围支撑服务编排仓：Docker Compose、薄适配 shim、业�
 | `egress-proxy/` | 出站代理（v2rayA：粘贴订阅、点选节点；供 g-framework `PROXY_HOST=egress-proxy`） |
 | `alist/` | Alist WebDAV（同机 `g-support-net`，`http://alist:5244/dav/`；不暴露公网；见 `alist/README.md`） |
 | `g_ppt/` | PPT 渲染服务（原独立仓迁入） |
-| `indextts2/` | IndexTTS2 compose + g_media 兼容 shim |
-| `gpt-sovits/` | 仅 compose + shim + voices 目录说明（上游源码/权重本地自备） |
-| `cosyvoice/` | CosyVoice compose + 薄服务代码 |
+| `indextts2/` | IndexTTS2 compose + g_media 兼容 shim（唯一 TTS 栈） |
 | `vllm/` | 仅 ollama / vllm compose |
 
 ## 前置
@@ -34,8 +34,9 @@ docker compose up -d egress-proxy   # 可选：网页配置代理，见 egress-p
 docker compose up -d alist          # 可选：同机 WebDAV + 阿里云盘 Open（勿公网暴露），见 alist/README.md
 docker compose up -d g-ppt
 docker compose up -d indextts2
-docker compose up -d cosyvoice
 ```
+
+在 `docker-compose.yml` 中取消注释 `./indextts2/docker-compose.yml` 的 `include` 后，也可在仓库根目录用 `docker compose up -d indextts2` 启停；否则进入 `indextts2/` 执行 `docker compose up -d`。
 
 各子目录 README 有端口与联调说明。
 
@@ -44,9 +45,19 @@ docker compose up -d cosyvoice
 按需自行放置，例如：
 
 - `indextts2/voices/*.wav` + 已提交的 `catalog.json`
-- `gpt-sovits/` 上游代码与权重（compose/shim 已入仓）
 - `vllm/vllm_models/`、`vllm/local_ollama/`
 - `g_ppt/assets/` 上传/演示素材
+
+## 已部署其它 TTS 时的清理（同机 / WAN）
+
+本仓已移除 **gpt-sovits**、**cosyvoice** 编排。若线上仍残留旧容器，在同机执行：
+
+```bash
+docker stop gpt-sovits cosyvoice 2>/dev/null || true
+docker rm gpt-sovits cosyvoice 2>/dev/null || true
+```
+
+释放 GPU 与端口（GPT-SoVITS 常用 `9871`–`9880`，CosyVoice 常用 `8188`）。TTS 仅保留 **indextts2**（shim 宿主机 `8190`，上游 `8191`，Gradio `7870`）。
 
 ## 远程
 
