@@ -9,7 +9,8 @@
 .DS_Store
 .idea/
 .vscode/
-**/.cursor/
+**/.cursor/*
+!.cursor/environment.json
 *.swp
 *~
 
