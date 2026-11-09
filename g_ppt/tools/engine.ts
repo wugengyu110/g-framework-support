@@ -426,7 +426,7 @@ export function saveAsset(
   }
 }
 
-async function probeDurationSec(filePath: string): Promise<number> {
+export async function probeDurationSec(filePath: string): Promise<number> {
   const ffprobe = whichFfprobe()
   if (!ffprobe) {
     throw new Error('ffprobe not found on PATH; required for video scenes')
@@ -451,7 +451,7 @@ async function probeDurationSec(filePath: string): Promise<number> {
   return n
 }
 
-async function hasAudioStream(filePath: string): Promise<boolean> {
+export async function hasAudioStream(filePath: string): Promise<boolean> {
   const ffprobe = whichFfprobe()
   if (!ffprobe) return false
   try {
@@ -769,6 +769,10 @@ export async function muxNarrationOntoVideo(
 
   mkdirSync(dirname(outPath), { recursive: true })
   copyFileSync(current, outPath)
+
+  if (!(await hasAudioStream(outPath))) {
+    throw new Error('mux failed: output mp4 has no audio track')
+  }
 
   let subtitle_path: string | undefined
   let srtBody: string | null = null
@@ -1213,6 +1217,56 @@ export async function apiTempoAudio(options: {
   } finally {
     rmSync(work, { recursive: true, force: true })
   }
+}
+
+/** 在临时目录拼接多段音频，返回合并文件绝对路径（不写 assets） */
+export async function concatAudioSourcesInWork(
+  sources: string[],
+  workDir: string,
+  outName = 'narration_mux.m4a',
+): Promise<string> {
+  const trimmed = sources.map((s) => s.trim()).filter(Boolean)
+  if (trimmed.length < 1) throw new Error('audio sources empty')
+  requireFfmpeg()
+  mkdirSync(workDir, { recursive: true })
+  const normalized: string[] = []
+  for (let i = 0; i < trimmed.length; i++) {
+    const srcPath = resolveMediaSrc(trimmed[i])
+    const part = resolve(workDir, `part_${String(i).padStart(3, '0')}.m4a`)
+    await execFileAsync(requireFfmpeg(), [
+      '-y',
+      '-i',
+      srcPath,
+      '-vn',
+      '-c:a',
+      'aac',
+      '-ar',
+      '44100',
+      '-ac',
+      '2',
+      part,
+    ])
+    normalized.push(part)
+  }
+  const listPath = resolve(workDir, 'concat.txt')
+  writeFileSync(
+    listPath,
+    normalized.map((p) => `file '${escapeConcatPath(p)}'`).join('\n') + '\n',
+  )
+  const merged = resolve(workDir, outName)
+  await execFileAsync(requireFfmpeg(), [
+    '-y',
+    '-f',
+    'concat',
+    '-safe',
+    '0',
+    '-i',
+    listPath,
+    '-c',
+    'copy',
+    merged,
+  ])
+  return merged
 }
 
 /** 工具 A：短语音拼接成长音频，写入 assets 便于后续引用 */

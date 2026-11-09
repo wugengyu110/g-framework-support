@@ -73,6 +73,18 @@ Show 级可选：
 
 `src` / `audio_src` / `subtitle_src` / `presenter.src`：`asset:<id>`（推荐）、`assets/` 内相对路径（如 `presenter/talking.mp4`）、或容器内绝对路径。
 
+### Mindmap 成片（`POST /api/jobs/render-mindmap`）
+
+| 字段 | 说明 |
+|------|------|
+| `canvas` + `shots[]` | Obsidian 画布与时间轴；每镜 `t` / `focus` / `move?` / `padding?` |
+| `shots[].duration_sec` | 本镜停留秒数（至下一镜）。media TTS 重定时后写入；**有则按镜重算 `shots.t`**，成片画面时长约为各镜之和 |
+| `audio_src` | 整段旁白 `asset:<id>`；混入 AAC，**成片时长以音频为准**（画面不足则循环补齐） |
+| `per_shot_narration[]` | 与 media PR #18 对齐：`shot_index?`、`audio_src?`、`duration_sec?`、`text?`。无顶层 `audio_src` 时按镜 `audio_src` concat 再混入；`duration_sec` 可只出现在此数组 |
+| `subtitle_src` / `cues` / `bgm_*` | 同 show 级字幕与 BGM |
+
+勿只传重定时 `duration_sec` 仍用旧版 `t` 间距而未传 `audio_src`：旧行为下画面只有约 `last(t)+hold_end` 秒且无音轨。修版服务会按 `duration_sec` 拉长时间轴；旁白需 `audio_src` 或 `per_shot_narration[].audio_src`。
+
 ### 音频工具（可选）
 
 `POST /api/audio/concat`：`{ "sources": ["asset:a", "asset:b"] }` → 长音频 `asset:…`。

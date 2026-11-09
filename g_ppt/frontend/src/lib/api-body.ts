@@ -119,11 +119,20 @@ export const MindmapEdgeBodySchema = z.object({
   color: z.string().optional(),
 })
 
+export const PerShotNarrationBodySchema = z.object({
+  shot_index: z.number().int().nonnegative().optional(),
+  audio_src: z.string().min(1).optional(),
+  duration_sec: z.number().positive().optional(),
+  text: z.string().optional(),
+})
+
 export const MindmapShotBodySchema = z.object({
   t: z.number().nonnegative(),
   focus: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
   move: z.number().nonnegative().optional(),
   padding: z.number().nonnegative().optional(),
+  duration_sec: z.number().positive().optional(),
+  audio_src: z.string().min(1).optional(),
 })
 
 /** Obsidian 画布 + 播放时间轴。长片请走 /api/jobs/render-mindmap。 */
@@ -145,6 +154,21 @@ export const RenderMindmapBodySchema = z.object({
   /** canvas file 相对路径 → asset:<id> 或服务端可读路径 */
   files: z.record(z.string(), z.string()).optional(),
   vault: z.string().optional(),
+  audio_src: z.string().min(1).optional(),
+  per_shot_narration: z.array(PerShotNarrationBodySchema).optional(),
+  subtitle_src: z.string().min(1).optional(),
+  burn_in: z.boolean().optional(),
+  bgm_src: z.string().min(1).optional(),
+  bgm_volume: z.number().min(0).max(1).optional(),
+  cues: z
+    .array(
+      z.object({
+        start: z.number().nonnegative(),
+        end: z.number().positive(),
+        text: z.string(),
+      }),
+    )
+    .optional(),
 })
 
 export type RenderSlideBody = z.infer<typeof RenderSlideBodySchema>
